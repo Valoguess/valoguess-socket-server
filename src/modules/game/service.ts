@@ -68,7 +68,7 @@ export function selectQuestionIds(
   return shuffle(selected);
 }
 
-export async function startGame(roomId: string): Promise<Room> {
+export async function startGame(roomId: string, socketId: string): Promise<Room> {
   const room = await getRoomById(roomId);
 
   if (!room) {
@@ -83,7 +83,14 @@ export async function startGame(roomId: string): Promise<Room> {
     throw new AppError("Not enough players to start the game");
   }
 
+  const player = room.players.find(p => p.socketId === socketId);
+  if (!player) {
+    throw new AppError("Player not found in the room");
+  }
 
+  if (player.id !== room.hostId) {
+    throw new AppError("Only the host can start the game");
+  }
 
   const currentTurn = room.players[Math.floor(Math.random() * 2)]!.id;
 

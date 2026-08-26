@@ -9,7 +9,7 @@ export function gameListener(io: Server, socket: Socket) {
   socket.on(
     ClientEvents.GAME_START,
     asyncHandler(socket, async (roomId: string) => {
-      const room = await startGame(roomId);
+      const room = await startGame(roomId, socket.id);
 
 
       for (const player of room.players) {
