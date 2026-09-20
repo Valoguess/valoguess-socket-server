@@ -7,7 +7,7 @@ import type { Room } from "@/shared/consts/types.js";
 
 export async function askQuestion(
   roomId: string,
-  socketId: string,
+  playerId: string,
   questionId: string
 ): Promise<Room> {
   const room = await getRoomById(roomId);
@@ -23,7 +23,7 @@ export async function askQuestion(
     throw new AppError("Game not started", 400);
   }
   
-  const currPlayer = room.players.find((player) => player.socketId === socketId);
+  const currPlayer = room.players.find((player) => player.id === playerId);
   if (!currPlayer) {
     throw new AppError("Player not found", 404);
   }
@@ -69,7 +69,7 @@ export async function askQuestion(
 
 export async function answerQuestion(
   roomId: string,
-  socketId: string,
+  playerId: string,
   answer: "yes" | "no"
 ): Promise<Room> {
   const room = await getRoomById(roomId);
@@ -89,7 +89,7 @@ export async function answerQuestion(
     throw new AppError("No pending question", 400);
   }
 
-  const currPlayer = room.players.find((player) => player.socketId === socketId);
+  const currPlayer = room.players.find((player) => player.id === playerId);
   if (!currPlayer) {
     throw new AppError("Player not found", 404);
   }
@@ -122,7 +122,7 @@ export async function answerQuestion(
 
 export async function makeGuess(
   roomId: string,
-  socketId: string,
+  playerId: string,
   guess: string
 ): Promise<Room> {
   
@@ -135,12 +135,11 @@ export async function makeGuess(
     throw new AppError("Game not started", 400);
   }
 
-  const currPlayer = room.players.find((player) => player.socketId === socketId);
+  const currPlayer = room.players.find((player) => player.id === playerId);
   if (!currPlayer) {
     throw new AppError("Player not found", 404);
   }
-  const playerId = currPlayer.id;
-
+  
   if (room.game.currentTurn !== playerId) {
     throw new AppError("It's not your turn", 400);
   }

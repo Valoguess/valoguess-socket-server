@@ -2,7 +2,7 @@ import { getRoomById, saveRoom } from "../room/service.js";
 
 import { AppError } from "@/shared/utils/error.js";
 import { AGENTS } from "@/shared/consts/agents.js";
-import type { Player, Room } from "@/shared/consts/types.js";
+import type { RoomPlayer, Room } from "@/shared/consts/types.js";
 import { clearTurnTimer, restartTurnTimer, startTurnTimer } from "./timer.js";
 import { DIFFICULTY_PERCENTAGES, QUESTIONS, type Question, type QuestionDifficulty, type QuestionId } from "@/shared/consts/questions.js";
 
@@ -68,7 +68,7 @@ export function selectQuestionIds(
   return shuffle(selected);
 }
 
-export async function startGame(roomId: string, socketId: string): Promise<Room> {
+export async function startGame(roomId: string, playerId: string): Promise<Room> {
   const room = await getRoomById(roomId);
 
   if (!room) {
@@ -83,12 +83,12 @@ export async function startGame(roomId: string, socketId: string): Promise<Room>
     throw new AppError("Not enough players to start the game");
   }
 
-  const player = room.players.find(p => p.socketId === socketId);
+  const player = room.players.find(p => p.id === playerId);
   if (!player) {
     throw new AppError("Player not found in the room");
   }
 
-  if (player.id !== room.hostId) {
+  if (playerId !== room.hostId) {
     throw new AppError("Only the host can start the game");
   }
 
@@ -161,21 +161,6 @@ export async function changeTurn(roomIdentifier: string | Room): Promise<Room> {
   return room;
 }
 
-export async function gameHeartbeat(roomId: string, socketId: string): Promise<void> {
-  const room = await getRoomById(roomId);
-
-  if (!room) {
-    throw new AppError("Room not found");
-  }
-
-  const player = room.players.find(player => player.socketId === socketId);
-  if (!player) {
-    throw new AppError("Player not found in the room");
-  }
-
-  player.lastHeartbeatAt = Date.now();
-  await saveRoom(room);
-}
 
 
 export async function finishGame(
@@ -196,14 +181,14 @@ export async function finishGame(
   return await saveRoom(room);
 }
 
-export async function resetGame(roomId: string, socketId: string): Promise<Room> {
+export async function resetGame(roomId: string, playerId: string): Promise<Room> {
   const room = await getRoomById(roomId);
 
   if (!room) {
     throw new AppError("Room not found");
   }
 
-  const player = room.players.find(player => player.socketId === socketId);
+  const player = room.players.find(player => player.id === playerId);
   if (player?.id !== room.hostId) {
     throw new AppError("Only the host can reset the game");
   }
@@ -219,7 +204,7 @@ export async function resetGame(roomId: string, socketId: string): Promise<Room>
   return room;
 }
 
-export async function getCurrentPlayer(roomId: string, socketId: string): Promise<Player> {
+export async function getCurrentPlayer(roomId: string, playerId: string): Promise<RoomPlayer> {
 
   const room = await getRoomById(roomId);
   
@@ -231,7 +216,7 @@ export async function getCurrentPlayer(roomId: string, socketId: string): Promis
     throw new AppError("Game is not currently in progress");
   }
 
-  const currentPlayer = room.players.find(player => player.socketId === socketId);
+  const currentPlayer = room.players.find(player => player.id === playerId);
 
   if (!currentPlayer) {
     throw new AppError("Player not found in the room");
