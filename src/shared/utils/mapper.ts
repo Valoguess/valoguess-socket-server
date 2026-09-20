@@ -10,7 +10,7 @@ import { AppError } from "./error.js";
 
 export interface RoomPlayerDTO {
   id: string;
-  username: string;
+  name: string;
 }
 
 export interface PlayerGameStateDTO {
@@ -59,16 +59,16 @@ export interface RoomDTO {
 
 export function roomMapper(
   room: Room,
-  socketId: string,
+  playerId: string,
 ): RoomDTO {
 
-  const me = room.players.find((p) => p.socketId === socketId);
+  const me = room.players.find((p) => p.id === playerId);
 
   if (!me) {
     throw new AppError("Current player not found.");
   }
 
-  const opponent = room.players.find((p) => p.socketId !== socketId);
+  const opponent = room.players.find((p) => p.id !== playerId);
 
   const dto: RoomDTO = {
     id: room.id,
@@ -78,7 +78,7 @@ export function roomMapper(
     me: {
       player: {
         id: me.id,
-        username: me.username,
+        name: me.name,
       },
       state: {
         isMyTurn: false,
@@ -96,7 +96,7 @@ export function roomMapper(
     dto.opponent = {
       player: {
         id: opponent.id,
-        username: opponent.username,
+        name: opponent.name,
       },
       state: {
         isMyTurn: false,

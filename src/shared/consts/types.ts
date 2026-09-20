@@ -15,10 +15,16 @@ export const DefaultSettings: Settings = {
 
 export interface Player {
   id: string;
-  username: string;
-  socketId: string;
+  name: string;
+  roomId: string | null;
+  socketId: string | null;
   lastHeartbeatAt: number;
-  reconnectToken: string | null;
+}
+
+export interface RoomPlayer {
+  id: string;
+  name: string;
+  socketId: string;
 }
 
 export type RoomState = "waiting" | "playing" | "finished";
@@ -27,7 +33,7 @@ export interface Room {
   id: string;
   state: RoomState;
   hostId: string;
-  players: Player[];
+  players: RoomPlayer[];
   settings: Settings;
   game?: GameState;
   createdAt: number;
@@ -41,7 +47,7 @@ export interface GameState {
   pendingQuestion?: PendingQuestion;
   history: QuestionHistory[];
   questionPool: string[];
-  playerStates: Record<Player["id"], PlayerState>;
+  playerStates: Record<RoomPlayer["id"], PlayerState>;
   winnerId?: string;
   endedAt?: number;
 }
