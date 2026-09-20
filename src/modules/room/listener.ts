@@ -5,8 +5,7 @@ import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 import { ClientEvents, ServerEvents } from "@/shared/consts/events.js";
 
 import {
-  joinRoomSchema,
-  playerSchema,
+  roomIdInputSchema,
   updateRoomSchema,
 } from "./schema.js";
 
@@ -23,43 +22,50 @@ import {
 export function roomListener(io: Server, socket: Socket) {
   socket.on(
     ClientEvents.ROOM_CREATE,
-    asyncHandler(socket, async (payload) => {
-      const player = playerSchema.parse(payload);
+    asyncHandler(socket, async () => {
+      const player = {
+        id: socket.data.id,
+        name: socket.data.name,
+        socketId: socket.id,
+      }
 
-      const { room, reconnectToken } = await createRoom(socket.id, player);
+      console.log('socket_data ', socket.data)
+
+      const room = await createRoom(player);
 
       await socket.join(room.id);
-      io.to(room.id).emit(ServerEvents.ROOM_SYNC, roomMapper(room, socket.id));
-      socket.emit(ServerEvents.AUTH, reconnectToken)
+      io.to(room.id).emit(ServerEvents.ROOM_SYNC, roomMapper(room, player.id));
     }),
   );
 
   socket.on(
     ClientEvents.ROOM_JOIN,
     asyncHandler(socket, async (payload) => {
-      const { roomId, player } = joinRoomSchema.parse(payload);
-
-      const { room, reconnectToken } = await addPlayerToRoom(roomId, {
-        ...player,
+      const { roomId } = roomIdInputSchema.parse(payload);
+      const player = {
+        id: socket.data.id,
+        name: socket.data.name,
         socketId: socket.id,
-      });
+      }
+
+      const room = await addPlayerToRoom(roomId, player);
 
       await socket.join(room.id);
 
       for (const player of room.players) {
         io.to(player.socketId).emit(
           ServerEvents.ROOM_SYNC,
-          roomMapper(room, player.socketId),
+          roomMapper(room, player.id),
         );
       }
 
-      io.to(socket.id).emit(ServerEvents.AUTH, reconnectToken)
     }),
   );
 
   socket.on(
     ClientEvents.ROOM_LEAVE,
-    asyncHandler(socket, async (roomId) => {
+    asyncHandler(socket, async (payload) => {
+      const { roomId } = roomIdInputSchema.parse(payload);
       const room = await leaveRoom(roomId, socket.id);
 
       await socket.leave(roomId);
@@ -68,7 +74,7 @@ export function roomListener(io: Server, socket: Socket) {
       for (const player of room.players) {
         io.to(player.socketId).emit(
           ServerEvents.ROOM_SYNC,
-          roomMapper(room, socket.id),
+          roomMapper(room, player.id),
         );
       }
     }),
@@ -84,7 +90,7 @@ export function roomListener(io: Server, socket: Socket) {
       for (const player of room.players) {
         io.to(player.socketId).emit(
           ServerEvents.ROOM_SYNC,
-          roomMapper(room, player.socketId),
+          roomMapper(room, player.id),
         );
       }
     }),
@@ -93,7 +99,7 @@ export function roomListener(io: Server, socket: Socket) {
   socket.on(
     ClientEvents.ROOM_KICK,
     asyncHandler(socket, async ({ roomId, kickedPlayerId }) => {
-      const { room, kickedPlayer } = await kickPlayerFromRoom(roomId, kickedPlayerId, socket.id);
+      const { room, kickedPlayer } = await kickPlayerFromRoom(roomId, kickedPlayerId, socket.data.id);
 
       const kickedPlayerSocket = io.sockets.sockets.get(kickedPlayer.socketId);
       if (kickedPlayerSocket) {
@@ -103,18 +109,9 @@ export function roomListener(io: Server, socket: Socket) {
       for (const player of room.players) {
         io.to(player.socketId).emit(
           ServerEvents.ROOM_SYNC,
-          roomMapper(room, player.socketId),
+          roomMapper(room, player.id),
         );
       }
     })
   )
-
-  socket.on(
-    ClientEvents.ROOM_RECONNECT,
-    asyncHandler(socket, async ({ roomId, reconnectToken }) => {
-      const room = await reconnectPlayerToRoom(roomId, reconnectToken, socket.id);
-      console.log("Reconnected");
-      await socket.join(room.id);
-    }),
-  );
 }

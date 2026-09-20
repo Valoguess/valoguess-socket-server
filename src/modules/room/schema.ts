@@ -1,19 +1,10 @@
 import * as z from "zod";
 
-export const playerSchema =  z.object({
-  id: z.string(),
-  username: z.string(),
-})
-
-export type playerInput = z.infer<typeof playerSchema>;
-
-export const joinRoomSchema = z.object({
+export const roomIdInputSchema = z.object({
   roomId: z.string(),
-  player: playerSchema,
 });
 
-
-export type joinRoomPayload = z.infer<typeof joinRoomSchema>;
+export type RoomIdInput = z.infer<typeof roomIdInputSchema>;
 
 export const updateRoomSchema = z.object({
   roomId: z.string(),
