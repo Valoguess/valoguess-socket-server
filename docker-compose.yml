@@ -12,6 +12,8 @@ services:
 
     depends_on:
       - redis
+    networks:
+      - valoguess
 
   redis:
     image: redis:8-alpine
@@ -22,6 +24,12 @@ services:
 
     volumes:
       - redis-data:/data
+    networks:
+      - valoguess
 
 volumes:
   redis-data:
+
+networks:
+  valoguess:
+    external: true
