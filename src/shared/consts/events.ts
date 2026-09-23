@@ -35,6 +35,8 @@ export const ServerEvents = {
   CHAT_MESSAGE: "chat:message",
 
   INVITE_SYNC: "invite:sync",
+  FRIENDS_SYNC: "friends:sync",
+  FRIENDS_PRESENCE: "friends:presence",
 
   AUTH: "auth",
   ERROR: "app:error",
