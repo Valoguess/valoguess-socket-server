@@ -1,31 +1,15 @@
 import { AppError } from "@/shared/utils/error.js";
 import { addPlayerToRoom, getRoomById, leaveRoom, reconnectPlayerToRoom } from "../room/service.js";
 import { redis } from "@/setup/redis.js";
-import { areFriends } from "@/db/friendship.js";
-import type { Player, RoomPlayer } from "@/shared/consts/types.js";
+import { areFriends, getFriends } from "@/db/friendship.js";
+import type { Player } from "@/shared/consts/types.js";
 import type { Socket } from "socket.io";
+import { ServerEvents } from "@/shared/consts/events.js";
 
 const PLAYER_PREFIX = "player:";
 const PLAYER_TTL = 60 * 10; // 10 minutes
 
 const playerKey = (playerId: string) => `${PLAYER_PREFIX}${playerId}`;
-
-export async function handleConnection(socket: Socket) {
-  const player = await getPlayerById(socket.data.id);
-
-  if (player) {
-    player.socketId = socket.id;
-    await savePlayer(player);
-
-    if (player.roomId) {
-      const room = await reconnectPlayerToRoom(player.roomId, player.id, socket.id);
-      socket.join(player.roomId);
-      return room;
-    }
-  } else {
-    await savePlayer({...socket.data, socketId: socket.id})
-  }
-}
 
 export async function playerExists(playerId: string) {
   return (await redis.exists(playerKey(playerId))) === 1;
@@ -60,6 +44,17 @@ export async function deletePlayer(playerId: string) {
   await redis.del(playerKey(playerId));
 }
 
+export async function handleHeartbeat(playerId: string) {
+  const player = await getPlayerById(playerId);
+
+  if (!player) {
+    throw new AppError("Player not found");
+  }
+
+  player.lastHeartbeatAt = Date.now();
+  await savePlayer(player);
+}
+
 export async function updatePlayerRoom(playerId: string, roomId: string | null) {
   const player = await getPlayerById(playerId);
   if (!player) {
@@ -69,6 +64,56 @@ export async function updatePlayerRoom(playerId: string, roomId: string | null) 
   player.roomId = roomId;
   await savePlayer(player);
 }
+
+export async function getFriendsWithPresence(playerId: string) {
+  const friends = await getFriends(playerId);
+
+  const presenceWithSocketIds = await Promise.all(
+    friends.map(async (friend) => {
+      const player = await getPlayerById(friend.friendId);
+      return {
+        userId: friend.friendId,
+        online: player?.socketId != null,
+        socketId: player?.socketId,
+      };
+    }),
+  );
+
+  return presenceWithSocketIds;
+}
+
+export async function syncFriends(socket: Socket) {
+  const userId = socket.data.id;
+  const presenceWithSocketIds = await getFriendsWithPresence(userId);
+
+  const presence = presenceWithSocketIds.map((friend) => ({
+    userId: friend.userId,
+    online: friend.online,
+  }));
+
+  socket.emit(ServerEvents.FRIENDS_SYNC, {
+    friends: presence,
+  });
+
+  for (const friend of presenceWithSocketIds) {
+    if (friend.online && friend.socketId) {
+      socket.to(friend.socketId).emit(ServerEvents.FRIENDS_PRESENCE, {
+        userId,
+        online: true,
+      });
+    }
+  }
+}
+
+export async function handlePlayerInactive(player: Player) {
+  if (player.roomId) {
+    await leaveRoom(player.roomId, player.id);
+  }
+
+  await deletePlayer(player.id);
+}
+
+// INVITE
 
 export async function invitePlayerToRoom(
   roomId: string,

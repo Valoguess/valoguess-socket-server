@@ -3,19 +3,14 @@ import type { Server, Socket } from "socket.io";
 import { roomMapper } from "@/shared/utils/mapper.js";
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 import { ClientEvents, ServerEvents } from "@/shared/consts/events.js";
-import { addPlayerToRoom, createRoom } from "../room/service.js";
-import { acceptRoomInvite, invitePlayerToRoom } from "./service.js";
-
-type PlayerInput = {
-  id: string;
-  username: string;
-}
+import { createRoom } from "../room/service.js";
+import { acceptRoomInvite, handleHeartbeat, invitePlayerToRoom } from "./service.js";
 
 export function playerListener(io: Server, socket: Socket) {
   socket.on(
     ClientEvents.PLAYER_HEARTBEAT,
     asyncHandler(socket, async () => {
-
+      await handleHeartbeat(socket.data.id);
     }),
   )
 
@@ -69,3 +64,5 @@ export function playerListener(io: Server, socket: Socket) {
     })
   )
 }
+
+
