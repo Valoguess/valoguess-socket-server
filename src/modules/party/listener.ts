@@ -10,7 +10,6 @@ export function partyListener(io: Server, socket: Socket) {
   socket.on(
     ClientEvents.INVITE_SEND, 
     asyncHandler(socket, async (payload) => {
-      console.log('invite_send payload', payload)
       let { roomId, invitedPlayer } = payload;
       if (!roomId) {
         const room = await createRoom(socket.data);

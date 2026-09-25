@@ -1,11 +1,9 @@
-import type { Socket } from "socket.io";
 import { leaveRoom } from "../room/service.js";
 
 import { redis } from "@/setup/redis.js";
-import { getFriends } from "@/db/friendship.js";
+import { getFriends } from "@/modules/friends/repository.js";
 import { AppError } from "@/shared/utils/error.js";
 import type { Player } from "@/shared/consts/types.js";
-import { ServerEvents } from "@/shared/consts/events.js";
 
 const PLAYER_PREFIX = "player:";
 const PLAYER_TTL = 60 * 10; // 10 minutes
@@ -34,7 +32,7 @@ export async function getActivePlayers() {
   const players = await Promise.all(
     keys.map(async (key) => {
       const player = await redis.get(key);
-      return player ? JSON.parse(player) as Player : null;
+      return player ? (JSON.parse(player) as Player) : null;
     }),
   );
 
@@ -56,7 +54,10 @@ export async function handleHeartbeat(playerId: string) {
   await savePlayer(player);
 }
 
-export async function updatePlayerRoom(playerId: string, roomId: string | null) {
+export async function updatePlayerRoom(
+  playerId: string,
+  roomId: string | null,
+) {
   const player = await getPlayerById(playerId);
   if (!player) {
     throw new AppError("Player not found");
@@ -81,29 +82,6 @@ export async function getFriendsWithPresence(playerId: string) {
   );
 
   return presenceWithSocketIds;
-}
-
-export async function syncFriends(socket: Socket) {
-  const userId = socket.data.id;
-  const presenceWithSocketIds = await getFriendsWithPresence(userId);
-
-  const presence = presenceWithSocketIds.map((friend) => ({
-    userId: friend.userId,
-    online: friend.online,
-  }));
-
-  socket.emit(ServerEvents.FRIENDS_SYNC, {
-    friends: presence,
-  });
-
-  for (const friend of presenceWithSocketIds) {
-    if (friend.online && friend.socketId) {
-      socket.to(friend.socketId).emit(ServerEvents.FRIENDS_PRESENCE, {
-        userId,
-        online: true,
-      });
-    }
-  }
 }
 
 export async function handlePlayerInactive(player: Player) {

@@ -1,11 +1,7 @@
 import { getPlayerById } from "../player/service.js";
-import {
-  addPlayerToRoom,
-  getRoomById,
-  leaveRoom
-} from "../room/service.js";
+import { addPlayerToRoom, getRoomById, leaveRoom } from "../room/service.js";
 
-import { areFriends } from "@/db/friendship.js";
+import { areFriends } from "@/modules/friends/repository.js";
 import { AppError } from "@/shared/utils/error.js";
 
 export async function invitePlayerToRoom(
@@ -30,7 +26,6 @@ export async function invitePlayerToRoom(
   }
 
   const invitedPlayerState = await getPlayerById(invitedPlayer.id);
-  console.log("Invited Player State", invitedPlayerState);
   if (!invitedPlayerState) {
     throw new AppError("Invited player not found");
   }
@@ -39,7 +34,7 @@ export async function invitePlayerToRoom(
     throw new AppError("Invited player is not online");
   }
 
-  if (invitedPlayerState.roomId === roomId) { 
+  if (invitedPlayerState.roomId === roomId) {
     throw new AppError("Invited player is already in the room");
   }
   return invitedPlayerState.socketId;
@@ -52,13 +47,13 @@ export async function acceptRoomInvite(roomId: string, playerId: string) {
   }
   if (player.roomId != null) {
     await leaveRoom(player.roomId, player.socketId!);
-  } 
+  }
 
   const roomPlayer = {
     id: player.id,
     name: player.name,
     socketId: player.socketId!,
-  }
+  };
 
   const room = await addPlayerToRoom(roomId, roomPlayer);
   return room;

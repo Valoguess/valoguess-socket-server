@@ -3,12 +3,15 @@ import { AppError } from "@/shared/utils/error.js";
 import { roomMapper } from "@/shared/utils/mapper.js";
 import { ServerEvents } from "@/shared/consts/events.js";
 import { reconnectPlayerToRoom } from "../room/service.js";
-import { handlePlayerInactive, syncFriends } from "./service.js";
+import { handlePlayerInactive } from "./service.js";
 import {
   savePlayer,
   getPlayerById,
-  getFriendsWithPresence
 } from "./service.js";
+import {
+  getPresenceWithSocketIds,
+  initialFriendPresenceSync,
+} from "../friends/service.js";
 
 const RECONNECT_GRACE_PERIOD = 60_000;
 
@@ -17,8 +20,10 @@ export async function handleConnection(
   socket: Socket,
 ) {
   try {
+    const userId = socket.data.id;
+
     let room;
-    const player = await getPlayerById(socket.data.id);
+    const player = await getPlayerById(userId);
   
     if (player) {
       player.socketId = socket.id;
@@ -31,8 +36,20 @@ export async function handleConnection(
     } else {
       await savePlayer({...socket.data, socketId: socket.id})
     }
-  
-    await syncFriends(socket);
+
+    const {presence, presenceWithSocketIds} = await initialFriendPresenceSync(userId);
+    socket.emit(ServerEvents.FRIENDS_SYNC, {
+      friends: presence,
+    });
+
+    for (const friend of presenceWithSocketIds) {
+      if (friend.online && friend.socketId) {
+        socket.to(friend.socketId).emit(ServerEvents.FRIEND_PRESENCE, {
+          userId,
+          online: true,
+        });
+      }
+    }
 
     if (room) {
       for (const player of room.players) {
@@ -64,11 +81,11 @@ export async function handleDisconnect(
       player.socketId = null;
       await savePlayer(player);
   
-      const friends = await getFriendsWithPresence(player.id);
+      const friends = await getPresenceWithSocketIds(player.id);
   
       for (const friend of friends) {
         if (friend.online && friend.socketId) {
-          socket.to(friend.socketId).emit(ServerEvents.FRIENDS_PRESENCE, {
+          socket.to(friend.socketId).emit(ServerEvents.FRIEND_PRESENCE, {
             userId: player.id,
             online: false,
           });
