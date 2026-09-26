@@ -46,7 +46,7 @@ export async function acceptRoomInvite(roomId: string, playerId: string) {
     throw new AppError("Player not found");
   }
   if (player.roomId != null) {
-    await leaveRoom(player.roomId, player.socketId!);
+    await leaveRoom(player.roomId, player.id);
   }
 
   const roomPlayer = {

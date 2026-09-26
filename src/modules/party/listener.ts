@@ -5,6 +5,7 @@ import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 import { ClientEvents, ServerEvents } from "@/shared/consts/events.js";
 import { createRoom } from "../room/service.js";
 import { acceptRoomInvite, invitePlayerToRoom } from "./service.js";
+import { getPlayerById } from "../player/service.js";
 
 export function partyListener(io: Server, socket: Socket) {
   socket.on(
@@ -48,7 +49,13 @@ export function partyListener(io: Server, socket: Socket) {
     ClientEvents.INVITE_REJECT,
     asyncHandler(socket, async (payload: { roomId: string, inviterId: string }) => {
       const { roomId, inviterId } = payload;
-      io.to(inviterId).emit(ServerEvents.INVITE_SYNC, {
+
+      const inviter = await getPlayerById(inviterId);
+      if (!inviter?.socketId) {
+        return;
+      }
+
+      io.to(inviter.socketId).emit(ServerEvents.INVITE_SYNC, {
         roomId,
         otherPlayerId: socket.data.id,
         status: "DECLINED"
