@@ -9,8 +9,8 @@ import {
   getPlayerById,
 } from "./service.js";
 import {
-  getPresenceWithSocketIds,
-  initialFriendPresenceSync,
+  getFriendsPresence,
+  initialFriendsSync,
 } from "../friends/service.js";
 
 const RECONNECT_GRACE_PERIOD = 60_000;
@@ -37,9 +37,21 @@ export async function handleConnection(
       await savePlayer({...socket.data, socketId: socket.id})
     }
 
-    const {presence, presenceWithSocketIds} = await initialFriendPresenceSync(userId);
+    if (room) {
+      for (const player of room.players) {
+        io.to(player.socketId).emit(
+          ServerEvents.ROOM_SYNC,
+          roomMapper(room, player.id),
+        );
+      }
+    } else {
+      io.to(socket.id).emit(ServerEvents.ROOM_SYNC, null);
+    }
+
+    const presenceWithSocketIds = await getFriendsPresence(userId);
+    const friends = await initialFriendsSync(userId)
     socket.emit(ServerEvents.FRIENDS_SYNC, {
-      friends: presence,
+      friends,
     });
 
     for (const friend of presenceWithSocketIds) {
@@ -51,16 +63,7 @@ export async function handleConnection(
       }
     }
 
-    if (room) {
-      for (const player of room.players) {
-        io.to(player.socketId).emit(
-          ServerEvents.ROOM_SYNC,
-          roomMapper(room, player.id),
-        );
-      }
-    } else {
-      io.to(socket.id).emit(ServerEvents.ROOM_SYNC, null);
-    }
+
   }
   catch (error) {
     if (error instanceof AppError) {
@@ -81,7 +84,7 @@ export async function handleDisconnect(
       player.socketId = null;
       await savePlayer(player);
   
-      const friends = await getPresenceWithSocketIds(player.id);
+      const friends = await getFriendsPresence(player.id);
   
       for (const friend of friends) {
         if (friend.online && friend.socketId) {
