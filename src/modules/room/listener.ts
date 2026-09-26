@@ -66,10 +66,12 @@ export function roomListener(io: Server, socket: Socket) {
     ClientEvents.ROOM_LEAVE,
     asyncHandler(socket, async (payload) => {
       const { roomId } = roomIdInputSchema.parse(payload);
-      const room = await leaveRoom(roomId, socket.id);
+      const room = await leaveRoom(roomId, socket.data.id);
 
       await socket.leave(roomId);
       if (!room) return;
+
+      socket.emit(ServerEvents.ROOM_SYNC, null);
 
       for (const player of room.players) {
         io.to(player.socketId).emit(
@@ -85,7 +87,7 @@ export function roomListener(io: Server, socket: Socket) {
     asyncHandler(socket, async (payload) => {
       const { roomId, settings } = updateRoomSchema.parse(payload);
 
-      const room = await updateRoomSettings(roomId, socket.id, settings);
+      const room = await updateRoomSettings(roomId, socket.data.id, settings);
 
       for (const player of room.players) {
         io.to(player.socketId).emit(
@@ -104,6 +106,7 @@ export function roomListener(io: Server, socket: Socket) {
       const kickedPlayerSocket = io.sockets.sockets.get(kickedPlayer.socketId);
       if (kickedPlayerSocket) {
         kickedPlayerSocket.leave(roomId);
+        kickedPlayerSocket.emit(ServerEvents.ROOM_SYNC, null);
       }
 
       for (const player of room.players) {

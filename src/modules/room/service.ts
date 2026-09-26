@@ -83,7 +83,7 @@ export async function addPlayerToRoom(roomId: string, player: RoomPlayer) {
 
 export async function updateRoomSettings(
   roomId: string,
-  socketId: string,
+  playerId: string,
   settings: Settings,
 ) {
   const room = await getRoomById(roomId);
@@ -91,7 +91,7 @@ export async function updateRoomSettings(
     throw new AppError("Room not found");
   }
 
-  const currentPlayer = room.players.find((p) => p.socketId === socketId);
+  const currentPlayer = room.players.find((p) => p.id === playerId);
   if (room.hostId !== currentPlayer?.id) {
     throw new AppError("Only the host can update room settings");
   }
@@ -131,14 +131,14 @@ export async function kickPlayerFromRoom(
   return {room , kickedPlayer};
 }
 
-export async function leaveRoom(roomId: string, socketId: string) {
+export async function leaveRoom(roomId: string, playerId: string) {
   const room = await getRoomById(roomId);
 
   if (!room) {
     throw new AppError("Room not found");
   }
 
-  const player = room.players.find((p) => p.socketId === socketId);
+  const player = room.players.find((p) => p.id === playerId);
   if (!player) {
     throw new AppError("Player not found in room");
   }
