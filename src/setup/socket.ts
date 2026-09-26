@@ -2,11 +2,12 @@ import "dotenv/config";
 import { Server } from "node:http";
 import { jwtVerify, createRemoteJWKSet } from 'jose'
 import { Socket, Server as SocketServer } from "socket.io";
+
 import { registerHandlers } from "./register.js";
+
+import ENV from "@/env.js";
 import { AppError } from "@/shared/utils/error.js";
 import { handleConnection, handleDisconnect } from "@/modules/player/presence.js";
-
-const FrontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
 interface SocketData {
   id: string;
@@ -16,11 +17,11 @@ interface SocketData {
 async function validateToken(token: string) {
   try {
     const JWKS = createRemoteJWKSet(
-      new URL(`${FrontendUrl}/api/auth/jwks`)
+      new URL(`${ENV.NEXTJS_INTERNAL_URL}/api/auth/jwks`)
     )
     const { payload } = await jwtVerify(token, JWKS, {
-      issuer: `${FrontendUrl}`, 
-      audience: `${FrontendUrl}`,
+      issuer: `${ENV.FRONTEND_URL}`, 
+      audience: `${ENV.FRONTEND_URL}`,
     })
     return payload
   } catch (error) {
@@ -32,7 +33,7 @@ async function validateToken(token: string) {
 export function createSocketServer(server: Server) {
   const io = new SocketServer<any,any,any,SocketData>(server, {
     cors: {
-      origin: [FrontendUrl],
+      origin: [ENV.FRONTEND_URL],
       credentials: true,
     },
   });
