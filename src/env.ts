@@ -8,6 +8,12 @@ export const envSchema = z.object({
   PORT: z.coerce.number().default(5000),
   CORS_ORIGIN: z.string().default("*"),
 
+  FRONTEND_URL: z.string().default("http://localhost:3000"),
+  NEXTJS_INTERNAL_URL: z.string().default("http://localhost:3000"),
+  INTERNAL_API_SECRET: z.string().default("secret"),
+
+  DATABASE_URL: z.string().default("postgres://postgres:example@localhost:5432/postgres"),
+
   REDIS_URL: z.string().default("redis://localhost:6379"),
 });
 
