@@ -2,7 +2,7 @@ import type { Server, Socket } from "socket.io";
 import { AppError } from "@/shared/utils/error.js";
 import { roomMapper } from "@/shared/utils/mapper.js";
 import { ServerEvents } from "@/shared/consts/events.js";
-import { reconnectPlayerToRoom } from "../room/service.js";
+import { getRoomById, reconnectPlayerToRoom } from "../room/service.js";
 import { handlePlayerInactive } from "./service.js";
 import {
   savePlayer,
@@ -63,7 +63,7 @@ export async function handleConnection(
       }
     }
 
-
+    console.log(player ? player.name : socket.id ,"connected")
   }
   catch (error) {
     if (error instanceof AppError) {
@@ -75,6 +75,7 @@ export async function handleConnection(
 }
 
 export async function handleDisconnect(
+  io: Server,
   socket: Socket,
 ) {
   try {
@@ -83,6 +84,7 @@ export async function handleDisconnect(
     if (player) {
       player.socketId = null;
       await savePlayer(player);
+      console.log(player ? player.name : socket.id ,"disconnected")
   
       const friends = await getFriendsPresence(player.id);
   
@@ -94,8 +96,20 @@ export async function handleDisconnect(
           });
         }
       }
-      setTimeout(() => {
-        checkInactivePlayer(player.id);
+      setTimeout(async () => {
+        try {
+          const isInactive = await checkInactivePlayer(player.id);
+          if (isInactive && player.roomId) { 
+            const room = await getRoomById(player.roomId);
+            if (room) {
+              io.to(player.roomId).emit(ServerEvents.ROOM_SYNC, roomMapper(room, player.id));
+            }
+          }
+        } catch (error) {
+          console.error(`[Presence] Failed to handle inactive player ${player.name}:`, error);
+        }
+
+
       }, RECONNECT_GRACE_PERIOD);
     }
   }
@@ -113,15 +127,16 @@ async function checkInactivePlayer(playerId: string) {
     const player = await getPlayerById(playerId);
 
     if (!player) {
-      return;
+      return false;
     }
 
     // Player reconnected during the grace period.
     if (player.socketId !== null) {
-      return;
+      return false;
     }
 
     await handlePlayerInactive(player);
+    return true;
   } catch (error) {
     console.error(
       `[Presence] Failed to handle inactive player ${playerId}:`,
