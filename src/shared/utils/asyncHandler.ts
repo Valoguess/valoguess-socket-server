@@ -1,7 +1,16 @@
-import type { Socket } from "socket.io";
-import { ServerEvents } from "@/shared/consts/events.js";
-import { AppError } from "./error.js";
 import { ZodError } from "zod";
+import type { Socket } from "socket.io";
+
+import { AppError } from "./error.js";
+import { ServerEvents } from "@/shared/consts/events.js";
+
+function emitError(socket: Socket, error: AppError) {
+  socket.emit(ServerEvents.ERROR, {
+    message: error.message,
+    status: error.status,
+    errorCode: error.errorCode,
+  });
+}
 
 export function asyncHandler<T extends any[]>(
   socket: Socket,
@@ -12,25 +21,20 @@ export function asyncHandler<T extends any[]>(
       await handler(...args);
     } catch (err) {
       if (err instanceof AppError) {
-        socket.emit(ServerEvents.ERROR, {
-          message: err.message,
-        });
-
+        emitError(socket, err);
         return;
       }
 
       if (err instanceof ZodError) {
-        socket.emit(ServerEvents.ERROR, {
-          message: "Invalid payload",
-        });
-
+        emitError(socket, new AppError("Invalid payload", "INVALID_PAYLOAD"));
         return;
       }
 
       console.error(err);
-      socket.emit(ServerEvents.ERROR, {
-        message: "Internal server error",
-      });
+      emitError(
+        socket,
+        new AppError("Internal server error", "INTERNAL_SERVER_ERROR", 500),
+      );
     }
   };
 }
