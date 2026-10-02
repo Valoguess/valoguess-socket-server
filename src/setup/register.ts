@@ -1,18 +1,22 @@
 import type { Server as SocketServer, Socket } from "socket.io";
-import { roomListener } from "@/modules/room/listener.js";
-import { gameListener } from "@/modules/game/listener.js";
-import { questionListener } from "@/modules/question/listener.js";
+import { gameCoreListener } from "@/modules/game/core/listener.js";
 import { playerListener } from "@/modules/player/listener.js";
 import { partyListener } from "@/modules/party/listener.js";
 import { friendsListener } from "@/modules/friends/listener.js";
+import { guessAgentGameListener } from "@/modules/game/guess-agent/listener.js";
 
 export function registerHandlers(io: SocketServer, socket: Socket) {
-  roomListener(io, socket);
-  gameListener(io, socket);
-  questionListener(io, socket);
+  // ==== GLOBAL LISTENERS ====
+
   playerListener(io, socket);
   partyListener(io, socket);
   friendsListener(io, socket);
 
+  // ==== GAME SPECIFIC LISTENERS ====
+
+  gameCoreListener(io, socket);
+
+  // ==== GUESS THE AGENT ====
+  
+  guessAgentGameListener(io, socket);
 }
- 
