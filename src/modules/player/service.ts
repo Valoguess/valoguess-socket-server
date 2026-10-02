@@ -1,9 +1,7 @@
-import { leaveRoom } from "../room/service.js";
-
 import { redis } from "@/setup/redis.js";
 import { getFriends } from "@/modules/friends/repository.js";
 import { AppError } from "@/shared/utils/error.js";
-import type { Player } from "@/shared/consts/types.js";
+import type { Player } from "@/modules/player/types.js";
 
 const PLAYER_PREFIX = "player:";
 const PLAYER_TTL = 60 * 10; // 10 minutes
@@ -54,16 +52,29 @@ export async function handleHeartbeat(playerId: string) {
   await savePlayer(player);
 }
 
-export async function updatePlayerRoom(
+export async function updatePlayerGame(
   playerId: string,
-  roomId: string | null,
+  gameId: string | null,
 ) {
   const player = await getPlayerById(playerId);
   if (!player) {
     throw new AppError("Player not found");
   }
 
-  player.roomId = roomId;
+  player.gameId = gameId;
+  await savePlayer(player);
+}
+
+export async function updatePlayerParty(
+  playerId: string,
+  partyId: string | null,
+) {
+  const player = await getPlayerById(playerId);
+  if (!player) {
+    throw new AppError("Player not found");
+  }
+
+  player.partyId = partyId;
   await savePlayer(player);
 }
 
@@ -85,8 +96,8 @@ export async function getFriendsWithPresence(playerId: string) {
 }
 
 export async function handlePlayerInactive(player: Player) {
-  if (player.roomId) {
-    await leaveRoom(player.roomId, player.id);
+  if (player.gameId) {
+    await updatePlayerGame(player.id, null);
   }
 
   await deletePlayer(player.id);
