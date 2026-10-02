@@ -53,13 +53,11 @@ export function createSocketServer(server: Server) {
   })
 
   io.on("connection", async (socket: Socket) => {
-    console.log(`${socket.id} connected`);
     registerHandlers(io, socket);
     await handleConnection(io, socket);
     
     socket.on("disconnecting", async () => {
-      console.log(`${socket.id} disconnected`);
-      await handleDisconnect(socket);  
+      await handleDisconnect(io, socket);  
     });
   });
 
