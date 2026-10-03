@@ -21,7 +21,6 @@ export const partyInviteDeclineInput = z.object({
 export type PartyInviteDeclineInput = z.infer<typeof partyInviteDeclineInput>;
 
 export const partyKickInput = z.object({
-  partyId: z.string(),
   kickedPlayerId: z.string(),
 });
 

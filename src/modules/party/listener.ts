@@ -5,6 +5,7 @@ import {
   partyInviteSendInput,
   partyInviteDeclineInput,
   partyKickInput,
+  partyIdInput,
 } from "./schema.js";
 
 import {
@@ -81,7 +82,7 @@ export function partyListener(io: Server, socket: Socket) {
   socket.on(
     ClientEvents.PARTY_INVITE_ACCEPT,
     asyncHandler(socket, async (payload) => {
-      const { partyId } = partyInviteSendInput.parse(payload);
+      const { partyId } = partyIdInput.parse(payload);
 
       const currPlayerId = socket.data.id;
       const currPlayer = await getPlayerById(currPlayerId);
@@ -126,7 +127,7 @@ export function partyListener(io: Server, socket: Socket) {
           "USER_NOT_IN_PARTY",
           404,
         );
-      }
+      } 
 
       const party = await leaveParty(partyId, socket.data.id);
 
