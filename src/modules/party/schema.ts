@@ -7,7 +7,7 @@ export const partyIdInput = z.object({
 export type PartyIdInput = z.infer<typeof partyIdInput>;
 
 export const partyInviteSendInput = z.object({
-  partyId: z.string(),
+  partyId: z.string().optional(),
   invitedPlayerId: z.string(),
 });
 

@@ -50,19 +50,24 @@ export function partyListener(io: Server, socket: Socket) {
     ClientEvents.PARTY_INVITE_SEND,
     asyncHandler(socket, async (payload) => {
       const { partyId, invitedPlayerId } = partyInviteSendInput.parse(payload);
-      let party = await getPartyById(partyId);
-
+      
       const currPlayer = await getPlayerById(socket.data.id);
       if (!currPlayer) {
         throw new AppError("Player not found", "PLAYER_NOT_FOUND", 404);
       }
-
+      
+      let party = await getPartyById(partyId || "");
       if (!party) {
         party = await createParty({
           id: currPlayer.id,
           name: currPlayer.name,
           socketId: socket.id,
         });
+
+        socket.join(party.id);
+        socket.emit(ServerEvents.PARTY_SYNC, party);
+        currPlayer.partyId = party.id;
+        await savePlayer(currPlayer);
       }
 
       const invitedPlayerSocketId = await invitePlayerToParty(
@@ -72,7 +77,7 @@ export function partyListener(io: Server, socket: Socket) {
       );
 
       io.to(invitedPlayerSocketId).emit(ServerEvents.PARTY_INVITE_SYNC, {
-        partyId,
+        partyId: party.id,
         inviterId: currPlayer.id,
         status: "PENDING",
       });

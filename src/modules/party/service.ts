@@ -38,7 +38,7 @@ export async function deleteParty(partyId: string) {
 }
 
 export async function createParty(leader: PartyMember) {
-  const partyId = generateId();
+  const partyId = generateId(6);
   const party = {
     id: partyId,
     leaderId: leader.id,
