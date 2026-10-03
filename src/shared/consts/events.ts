@@ -26,7 +26,6 @@ export const ClientEvents = {
 
   GAME_CREATE: "game:create",
   GAME_START: "game:start",
-  GAME_HEARTBEAT: "game:heartbeat",
 
   // ==== GUES AGENT SPECIFIC GAME EVENTS ====
 
