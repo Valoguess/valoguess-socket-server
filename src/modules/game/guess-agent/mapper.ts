@@ -89,6 +89,7 @@ export function guessAgentMapper(
         playerState,
         player.id === playerId,
         state.currentTurn === player.id,
+        game.status === "FINISHED",
       ),
     };
   });
@@ -111,10 +112,11 @@ function mapPlayerState(
   state: GuessAgentPlayerState,
   isMe: boolean,
   isMyTurn: boolean,
+  isFinished: boolean,
 ): GuessAgentPrivateStateDTO {
   return {
     isMyTurn,
-    secretAgent: isMe ? state.secretAgent : null,
+    secretAgent: isFinished || isMe ? state.secretAgent : null,
     guess: state.guess,
     nosRemaining: state.nosRemaining,
     guessesRemaining: state.guessesRemaining,
