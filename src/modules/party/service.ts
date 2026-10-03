@@ -1,6 +1,6 @@
 import type { Party, PartyMember } from "./types.js";
 
-import { getPlayerById, updatePlayerParty } from "../player/service.js";
+import { getPlayerById, savePlayer, updatePlayerParty } from "../player/service.js";
 
 import { redis } from "@/setup/redis.js";
 import { AppError } from "@/shared/utils/error.js";
@@ -165,4 +165,50 @@ export async function acceptPartyInvite(partyId: string, playerId: string) {
   await updatePlayerParty(player.id, party.id);
 
   return await saveParty(party);
+}
+
+
+export async function kickPlayerFromParty(partyId: string, currPlayerId: string, kickedPlayerId: string) {
+  const currPlayer = await getPlayerById(currPlayerId);
+  if (!currPlayer) {
+    throw new AppError("Player not found", "PLAYER_NOT_FOUND", 404);
+  }
+  
+  const party = await getPartyById(partyId);
+  if (!party) {
+    throw new AppError("Party not found", "PARTY_NOT_FOUND", 404);
+  }
+  
+  if (party.leaderId !== currPlayer.id) {
+    throw new AppError(
+      "Only the party leader can kick players",
+      "NOT_PARTY_LEADER",
+      403,
+    );
+  }
+  
+  const kickedPlayer = await getPlayerById(kickedPlayerId);
+  if (!kickedPlayer) {
+    throw new AppError("Kicked player not found", "PLAYER_NOT_FOUND", 404);
+  }
+  
+  if (kickedPlayer.partyId !== party.id) {
+    throw new AppError(
+      "Kicked player is not in the party",
+      "PLAYER_NOT_IN_PARTY",
+      400,
+    );
+  }
+
+  party.members = party.members.filter((member) => member.id !== kickedPlayerId);
+  
+  kickedPlayer.partyId = null;
+
+  const [updatedParty, updatedPlayer] = await Promise.all([
+    saveParty(party),
+    savePlayer(kickedPlayer),
+  ]);
+
+  return { updatedParty, kickedPlayerSocketId: updatedPlayer.socketId };
+  
 }
