@@ -11,7 +11,7 @@ import { AppError } from "@/shared/utils/error.js";
 export interface GuessAgentPlayerDTO {
   id: string;
   name: string;
-  state: GuessAgentPrivateStateDTO;
+  state?: GuessAgentPrivateStateDTO;
 }
 
 export interface GuessAgentPrivateStateDTO {
@@ -26,6 +26,7 @@ export interface GuessAgentGameDTO {
   id: string;
   status: string;
   players: GuessAgentPlayerDTO[];
+
   settings: {
     maxNos: number;
     maxGuesses: number;
@@ -33,25 +34,44 @@ export interface GuessAgentGameDTO {
     timePerRound: number;
     questionMode: "PRESET" | "FREEFORM";
   };
-  startedAt?: number;
 
+  state?: GuessAgentStateDTO;
+}
+
+export interface GuessAgentStateDTO {
+  startedAt: number;
   turnNumber: number;
   currentTurn: string;
-  turnEndTime?: number | null;
+  turnEndTime: number | null;
+
   pendingQuestion?: GuessAgentState["pendingQuestion"];
   history: GuessAgentState["history"];
 
-  result?: GuessAgentResult | undefined;
-  endedAt?: number | undefined;
+  result?: GuessAgentResult;
+  endedAt?: number;
 }
 
 export function guessAgentMapper(
   game: Game,
   playerId: string,
 ): GuessAgentGameDTO {
-  const state = game.state!;
+  const dto: GuessAgentGameDTO = {
+    id: game.id,
+    status: game.status,
+    players: game.players.map((player) => ({
+      id: player.id,
+      name: player.name,
+    })),
+    settings: game.settings,
+  };
 
-  const players = game.players.map((player) => {
+  if (!game.state) {
+    return dto;
+  }
+
+  const state = game.state;
+
+  dto.players = game.players.map((player) => {
     const playerState = state.playerStates[player.id];
 
     if (!playerState) {
@@ -65,7 +85,6 @@ export function guessAgentMapper(
     return {
       id: player.id,
       name: player.name,
-
       state: mapPlayerState(
         playerState,
         player.id === playerId,
@@ -74,20 +93,18 @@ export function guessAgentMapper(
     };
   });
 
-  return {
-    id: game.id,
-    status: game.status,
-    players,
-    settings: game.settings,
+  dto.state = {
     startedAt: state.startedAt,
     turnNumber: state.turnNumber,
     currentTurn: state.currentTurn,
     turnEndTime: state.turnEndTime ?? null,
-    pendingQuestion: state.pendingQuestion,
+    ...(state.pendingQuestion && { pendingQuestion: state.pendingQuestion }),
     history: state.history,
-    result: state.result,
-    endedAt: state.endedAt,
+    ...(state.result && { result: state.result }),
+    ...(state.endedAt && { endedAt: state.endedAt }),
   };
+
+  return dto;
 }
 
 function mapPlayerState(
