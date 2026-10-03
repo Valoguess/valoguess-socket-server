@@ -1,6 +1,7 @@
 import type { Server, Socket } from "socket.io";
 
 import { getGameById } from "./service.js";
+import { guessAgentMapper } from "../guess-agent/mapper.js";
 import { createGameSchema, gameIdSchema } from "./schema.js";
 
 import {
@@ -9,7 +10,6 @@ import {
 } from "../guess-agent/service.js";
 
 import { AppError } from "@/shared/utils/error.js";
-import { roomMapper } from "@/shared/utils/mapper.js";
 import { getPartyById } from "@/modules/party/service.js";
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 import { ClientEvents, ServerEvents } from "@/shared/consts/events.js";
@@ -51,7 +51,7 @@ export function gameCoreListener(io: Server, socket: Socket) {
           for (const player of game.players) {
             io.to(player.socketId).emit(
               ServerEvents.GAME_SYNC,
-              roomMapper(game, player.id),
+              guessAgentMapper(game, player.id),
             );
           }
 
@@ -92,7 +92,14 @@ export function gameCoreListener(io: Server, socket: Socket) {
 
       switch (game.mode) {
         case "GUESS_AGENT":
-          await startGuessAgentGame(gameId, currPlayerId);
+          const updatedGame = await startGuessAgentGame(gameId, currPlayerId);
+          for (const player of updatedGame.players) {
+            io.to(player.socketId).emit(
+              ServerEvents.GAME_SYNC,
+              guessAgentMapper(updatedGame, player.id),
+            );
+          }
+
           break;
         default:
           throw new AppError("Invalid game mode", "INVALID_GAME_MODE");
