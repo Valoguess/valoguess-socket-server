@@ -119,15 +119,16 @@ export function partyListener(io: Server, socket: Socket) {
   socket.on(
     ClientEvents.PARTY_LEAVE,
     asyncHandler(socket, async () => {
-      const partyId = socket.data.partyId;
+      const player = await getPlayerById(socket.data.id);
+      const partyId = player?.partyId;
 
       if (!partyId) {
         throw new AppError(
-          "User not in party, or party not found",
+          "User not in party",
           "USER_NOT_IN_PARTY",
           404,
         );
-      } 
+      }
 
       const party = await leaveParty(partyId, socket.data.id);
 
@@ -145,29 +146,19 @@ export function partyListener(io: Server, socket: Socket) {
     ClientEvents.PARTY_KICK,
     asyncHandler(socket, async (payload) => {
       const { kickedPlayerId } = partyKickInput.parse(payload);
-      const partyId = socket.data.partyId;
-
-      if (!partyId) {
-        throw new AppError(
-          "User not in party, or party not found",
-          "USER_NOT_IN_PARTY",
-          404,
-        );
-      }
 
       const { updatedParty, kickedPlayerSocketId } = await kickPlayerFromParty(
-        partyId,
         socket.data.id,
         kickedPlayerId,
       );
 
       const kickedPlayerSocket = io.sockets.sockets.get(kickedPlayerSocketId!);
       if (kickedPlayerSocket) {
-        kickedPlayerSocket.leave(partyId);
+        kickedPlayerSocket.leave(updatedParty.id);
         kickedPlayerSocket.emit(ServerEvents.PARTY_SYNC, null);
       }
 
-      io.to(partyId).emit(ServerEvents.PARTY_SYNC, updatedParty);
+      io.to(updatedParty.id).emit(ServerEvents.PARTY_SYNC, updatedParty);
     }),
   );
 
