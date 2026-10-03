@@ -12,6 +12,7 @@ import {
 import { AppError } from "@/shared/utils/error.js";
 import { getPartyById } from "@/modules/party/service.js";
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
+import { updatePlayersGame } from "@/modules/player/service.js";
 import { ClientEvents, ServerEvents } from "@/shared/consts/events.js";
 
 export function gameCoreListener(io: Server, socket: Socket) {
@@ -33,6 +34,8 @@ export function gameCoreListener(io: Server, socket: Socket) {
         );
       }
 
+      let game;
+
       switch (mode) {
         case "GUESS_AGENT":
           if (party.members.length !== 2) {
@@ -42,7 +45,7 @@ export function gameCoreListener(io: Server, socket: Socket) {
             );
           }
 
-          const game = await createGuessAgentGame(
+          game = await createGuessAgentGame(
             currPlayerId,
             party.members,
             settings,
@@ -59,6 +62,11 @@ export function gameCoreListener(io: Server, socket: Socket) {
         default:
           throw new AppError("Invalid game mode", "INVALID_GAME_MODE");
       }
+
+      await updatePlayersGame(
+        party.members.map((member) => member.id),
+        game.id,
+      );
     }),
   );
 

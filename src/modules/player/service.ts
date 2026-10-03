@@ -65,6 +65,35 @@ export async function updatePlayerGame(
   await savePlayer(player);
 }
 
+export async function updatePlayersGame(
+  playerIds: string[],
+  gameId: string | null,
+) {
+  const keys = playerIds.map((id) => playerKey(id));
+
+  const values = await redis.mget(keys);
+
+  const multi = redis.multi();
+
+  values.forEach((value, index) => {
+    if (!value) {
+      throw new AppError(`Player ${playerIds[index]} not found`);
+    }
+
+    const player = JSON.parse(value);
+
+    player.gameId = gameId;
+
+    multi.setex(
+      keys[index]!,
+      PLAYER_TTL,
+      JSON.stringify(player),
+    );
+  });
+
+  await multi.exec();
+}
+
 export async function updatePlayerParty(
   playerId: string,
   partyId: string | null,
