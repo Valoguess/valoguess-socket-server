@@ -136,7 +136,7 @@ async function handlePlayerInactive(
   try {
     const player = await getPlayerById(playerId);
 
-    if (!player || !player.socketId) {
+    if (!player || player.socketId != null) {
       return;
     }
 
