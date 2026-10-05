@@ -10,8 +10,6 @@ export interface GuessAgentSettings {
   questionCount: number;
 
   timePerRound: number;
-
-  questionPool?: string[];
 }
 
 export const DefaultGuessAgentSettings: GuessAgentSettings = {
@@ -25,21 +23,17 @@ export const DefaultGuessAgentSettings: GuessAgentSettings = {
 };
 
 export interface GuessAgentState {
-  startedAt: number;
-
-  currentTurn: string;
-  turnNumber: number;
-
+  currentTurn?: string;
+  turnNumber?: number;
   turnEndTime?: number;
 
+  questionPool?: string[];
   pendingQuestion?: PendingQuestion;
-
   history: QuestionHistory[];
 
   playerStates: Record<string, GuessAgentPlayerState>;
 
   result?: GuessAgentResult;
-  endedAt?: number;
 }
 
 export interface GuessAgentPlayerState {

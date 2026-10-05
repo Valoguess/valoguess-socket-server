@@ -4,7 +4,7 @@ import type {
 } from "../guess-agent/types.js";
 
 export type GameMode = "GUESS_AGENT" | "CODENAMES" | "IMPOSTER";
-export type GameStatus = "WAITING" | "PLAYING" | "FINISHED";
+export type GameStatus = "WAITING" | "STARTING" | "PLAYING" | "FINISHED";
 
 export interface GamePlayer {
   id: string;
@@ -21,6 +21,9 @@ export interface BaseGame {
   players: GamePlayer[];
 
   createdAt: number;
+  startingAt?: number;
+  startingEndsAt?: number;
+
   startedAt?: number;
   endedAt?: number;
 }

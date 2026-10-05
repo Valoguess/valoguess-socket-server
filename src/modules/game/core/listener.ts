@@ -5,6 +5,7 @@ import { guessAgentMapper } from "../guess-agent/mapper.js";
 import { createGameSchema, gameIdSchema } from "./schema.js";
 
 import {
+  beginGuessAgentGame,
   createGuessAgentGame,
   startGuessAgentGame,
 } from "../guess-agent/service.js";
@@ -107,6 +108,16 @@ export function gameCoreListener(io: Server, socket: Socket) {
               guessAgentMapper(updatedGame, player.id),
             );
           }
+
+          setTimeout(async () => {
+            const startingGame = await beginGuessAgentGame(updatedGame, currPlayerId);
+            for (const player of startingGame.players) {
+              io.to(player.socketId).emit(
+                ServerEvents.GAME_SYNC,
+                guessAgentMapper(startingGame, player.id),
+              );
+            }
+          }, 15000); // 15 seconds countdown
 
           break;
         default:

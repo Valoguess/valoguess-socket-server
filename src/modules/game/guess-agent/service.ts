@@ -65,7 +65,7 @@ export async function createGuessAgentGame(
   return await saveGame(game);
 }
 
-export async function startGuessAgentGame(gameId: string, playerId: string) {
+export async function startGuessAgentGame(gameId: string, playerId: string) { 
   const game = await getGameById(gameId);
 
   if (!game) {
@@ -84,17 +84,12 @@ export async function startGuessAgentGame(gameId: string, playerId: string) {
     );
   }
 
-  game.status = "PLAYING";
-  game.startedAt = Date.now();
+  game.status = "STARTING";
+  game.startingAt = Date.now();
+  game.startingEndsAt = game.startingAt + 7000; // 7 seconds countdown
 
-  const currentTurn = game.players[Math.floor(Math.random() * 2)]!.id;
-
-  game.settings.questionPool = selectQuestionIds(game.settings.questionCount);
 
   game.state = {
-    startedAt: Date.now(),
-    currentTurn,
-    turnNumber: 1,
     history: [],
     playerStates: {},
   };
@@ -112,6 +107,42 @@ export async function startGuessAgentGame(gameId: string, playerId: string) {
       guessesRemaining: game.settings.maxGuesses,
     };
   }
+
+  return game;
+  // return await saveGame(game);  
+}
+
+export async function beginGuessAgentGame(game: Game, playerId: string) {
+  if (!game) {
+    throw new AppError("Game not found", "GAME_NOT_FOUND", 404);
+  }
+
+  if (game.status !== "STARTING") {
+    throw new AppError("Game cannot be started", "GAME_ALREADY_STARTED");
+  }
+
+  if (game.hostId !== playerId) {
+    throw new AppError(
+      "Only the host can start the game",
+      "NOT_GAME_HOST",
+      403,
+    );
+  }
+
+  game.status = "PLAYING";
+  game.startedAt = Date.now();
+
+  const currentTurn = game.players[Math.floor(Math.random() * 2)]!.id;
+
+  if (!game.state) {
+    throw new AppError("Game state is missing", "GAME_STATE_MISSING", 500);
+  }
+  game.state = {
+    ...game.state,
+    currentTurn,
+    turnNumber: 1,
+    questionPool: selectQuestionIds(game.settings.questionCount),
+  };
 
   startTurnTimer(game.id, game.settings.timePerRound * 1000);
   game.state.turnEndTime = Date.now() + game.settings.timePerRound * 1000;
@@ -153,7 +184,7 @@ export async function changeTurn(gameIdentifier: string | Game): Promise<Game> {
   }
 
   game.state.currentTurn = nextTurnPlayer.id;
-  game.state.turnNumber++;
+  game.state.turnNumber = (game.state.turnNumber ?? 0) + 1;
 
   game.state.turnEndTime = Date.now() + game.settings.timePerRound * 1000;
   restartTurnTimer(game.id, game.settings.timePerRound * 1000);
@@ -179,7 +210,7 @@ export async function finishGame(game: Game, winnerId?: string) {
   }
 
   game.status = "FINISHED";
-  game.state.endedAt = Date.now();
+  game.endedAt = Date.now();
 
   clearTurnTimer(game.id);
   return await saveGame(game);

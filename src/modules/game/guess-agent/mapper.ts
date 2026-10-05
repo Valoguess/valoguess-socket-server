@@ -39,7 +39,6 @@ export interface GuessAgentGameDTO {
 }
 
 export interface GuessAgentStateDTO {
-  startedAt: number;
   turnNumber: number;
   currentTurn: string;
   turnEndTime: number | null;
@@ -48,7 +47,6 @@ export interface GuessAgentStateDTO {
   history: GuessAgentState["history"];
 
   result?: GuessAgentResult;
-  endedAt?: number;
 }
 
 export function guessAgentMapper(
@@ -95,14 +93,12 @@ export function guessAgentMapper(
   });
 
   dto.state = {
-    startedAt: state.startedAt,
-    turnNumber: state.turnNumber,
-    currentTurn: state.currentTurn,
+    turnNumber: state.turnNumber ?? 1,
+    currentTurn: state.currentTurn ?? "",
     turnEndTime: state.turnEndTime ?? null,
     ...(state.pendingQuestion && { pendingQuestion: state.pendingQuestion }),
     history: state.history,
     ...(state.result && { result: state.result }),
-    ...(state.endedAt && { endedAt: state.endedAt }),
   };
 
   return dto;
