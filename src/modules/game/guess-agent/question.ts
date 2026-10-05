@@ -53,11 +53,11 @@ export async function askQuestion(
     );
   }
 
-  if (!game.settings.questionPool) {
+  if (!game.state.questionPool) {
     return await saveGame(game);
   }
 
-  if (!game.settings.questionPool.includes(questionId)) {
+  if (!game.state.questionPool.includes(questionId)) {
     throw new AppError(
       "The question is not in the pool",
       "QUESTION_NOT_IN_POOL",
