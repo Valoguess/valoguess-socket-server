@@ -1,6 +1,7 @@
 import type { Server, Socket } from "socket.io";
 
 import { guessAgentMapper } from "./mapper.js";
+import { scheduleGameCleanup } from "../core/cleanup.js";
 import { answerQuestion, askQuestion, makeGuess } from "./question.js";
 
 import {
@@ -54,6 +55,10 @@ export function guessAgentGameListener(io: Server, socket: Socket) {
           ServerEvents.GAME_SYNC,
           guessAgentMapper(game, player.id),
         );
+      }
+
+      if (game.status === "FINISHED") {
+        scheduleGameCleanup(io, game);
       }
     }),
   );
