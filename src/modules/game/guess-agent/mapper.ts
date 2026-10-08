@@ -25,6 +25,8 @@ export interface GuessAgentPrivateStateDTO {
 export interface GuessAgentGameDTO {
   id: string;
   status: string;
+  startingAt?: number;
+  startingEndsAt?: number;
   players: GuessAgentPlayerDTO[];
 
   settings: {
@@ -56,6 +58,8 @@ export function guessAgentMapper(
   const dto: GuessAgentGameDTO = {
     id: game.id,
     status: game.status,
+    startingAt: game.startingAt!,
+    startingEndsAt: game.startingEndsAt!,
     players: game.players.map((player) => ({
       id: player.id,
       name: player.name,
