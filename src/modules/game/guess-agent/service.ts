@@ -12,6 +12,7 @@ import {
   type QuestionDifficulty,
   type QuestionId,
 } from "@/shared/consts/questions.js";
+import { getPlayerById } from "@/modules/player/service.js";
 
 function shuffle<T>(array: T[]): T[] {
   const result = [...array];
@@ -109,7 +110,6 @@ export async function startGuessAgentGame(gameId: string, playerId: string) {
   }
 
   return game;
-  // return await saveGame(game);  
 }
 
 export async function beginGuessAgentGame(game: Game, playerId: string) {
@@ -137,17 +137,59 @@ export async function beginGuessAgentGame(game: Game, playerId: string) {
   if (!game.state) {
     throw new AppError("Game state is missing", "GAME_STATE_MISSING", 500);
   }
+  const questionPool = selectQuestionIds(game.settings.questionCount)
+
   game.state = {
     ...game.state,
     currentTurn,
     turnNumber: 1,
-    questionPool: selectQuestionIds(game.settings.questionCount),
+    ...(game.settings.questionMode === "PRESET" && { questionPool }),
   };
 
-  startTurnTimer(game.id, game.settings.timePerRound * 1000);
-  game.state.turnEndTime = Date.now() + game.settings.timePerRound * 1000;
+
+  if (game.settings.timePerRound !== -1) {
+    startTurnTimer(game.id, game.settings.timePerRound * 1000);
+    game.state.turnEndTime = Date.now() + game.settings.timePerRound * 1000;
+  }
+
 
   return await saveGame(game);
+}
+
+export async function changeTurnFreeFormMode(playerId: string) {
+  const player = await getPlayerById(playerId);
+
+  if (!player) {
+    throw new AppError("Player not found", "PLAYER_NOT_FOUND", 404);
+  }
+
+  if (!player.gameId) {
+    throw new AppError("Player is not in a game", "PLAYER_NOT_IN_GAME", 400);
+  }
+
+  const game = await getGameById(player.gameId);
+
+  if (!game) {
+    throw new AppError("Game not found", "GAME_NOT_FOUND", 404);
+  }
+
+  if (game.mode !== "GUESS_AGENT") {
+    throw new AppError(
+      "Game is not in Guess Agent mode",
+      "GAME_NOT_GUESS_AGENT_MODE",
+      400,
+    );
+  }
+
+  if (game.settings.questionMode !== "FREEFORM") {
+    throw new AppError(
+      "Game is not in freeform question mode",
+      "GAME_NOT_FREEFORM_MODE",
+      400,
+    );
+  }
+
+  return await changeTurn(game);
 }
 
 export async function changeTurn(gameIdentifier: string | Game): Promise<Game> {
@@ -186,8 +228,11 @@ export async function changeTurn(gameIdentifier: string | Game): Promise<Game> {
   game.state.currentTurn = nextTurnPlayer.id;
   game.state.turnNumber = (game.state.turnNumber ?? 0) + 1;
 
-  game.state.turnEndTime = Date.now() + game.settings.timePerRound * 1000;
-  restartTurnTimer(game.id, game.settings.timePerRound * 1000);
+  
+  if (game.settings.timePerRound !== -1) {
+    game.state.turnEndTime = Date.now() + game.settings.timePerRound * 1000;
+    restartTurnTimer(game.id, game.settings.timePerRound * 1000);
+  }
 
   return await saveGame(game);
 }
@@ -212,7 +257,10 @@ export async function finishGame(game: Game, winnerId?: string) {
   game.status = "FINISHED";
   game.endedAt = Date.now();
 
-  clearTurnTimer(game.id);
+  if (game.settings.timePerRound !== -1) {
+    clearTurnTimer(game.id);    
+  }
+
   return await saveGame(game);
 }
 

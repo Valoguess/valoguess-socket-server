@@ -29,6 +29,7 @@ export const ClientEvents = {
 
   // ==== GUES AGENT SPECIFIC GAME EVENTS ====
 
+  CHANGE_TURN: "turn:change",
   QUESTION_ASK: "question:ask",
   QUESTION_ANSWER: "question:answer",
   GUESS_SUBMIT: "guess:submit",
