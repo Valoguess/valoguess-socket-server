@@ -7,6 +7,8 @@ import { registerHandlers } from "./register.js";
 
 import ENV from "@/env.js";
 import { AppError } from "@/shared/utils/error.js";
+import { RATE_LIMITS } from "@/shared/rateLimit/limits.js";
+import { attempt } from "@/shared/rateLimit/tokenBucket.js";
 import { handleConnection, handleDisconnect } from "@/modules/player/presence.js";
 
 interface SocketData {
@@ -53,6 +55,29 @@ export function createSocketServer(server: Server) {
   })
 
   io.on("connection", async (socket: Socket) => {
+    socket.use(async ([event], next) => {
+      const config = RATE_LIMITS[event as keyof typeof RATE_LIMITS];
+
+      if (!config) {
+        return next();
+      }
+
+      const result = await attempt(
+        `ratelimit:socket:${socket.data.id}:${event}`,
+        config,
+      );
+
+      if (!result.allowed) {
+        return next(new AppError(
+          "Too many requests",
+          "RATE_LIMITED",
+          429,
+        ));
+      }
+
+      next();
+    });
+
     registerHandlers(io, socket);
     await handleConnection(io, socket);
     
