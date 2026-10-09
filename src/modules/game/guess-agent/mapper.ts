@@ -1,4 +1,4 @@
-import type { Game } from "../core/types.js";
+import type { Game, GameStatus } from "../core/types.js";
 
 import type {
   GuessAgentState,
@@ -24,9 +24,16 @@ export interface GuessAgentPrivateStateDTO {
 
 export interface GuessAgentGameDTO {
   id: string;
-  status: string;
+
+  status: GameStatus;
+  hostId: string;
+
+  createdAt: number;
   startingAt?: number;
   startingEndsAt?: number;
+
+  startedAt?: number;
+  endedAt?: number;
   players: GuessAgentPlayerDTO[];
 
   settings: {
@@ -41,9 +48,9 @@ export interface GuessAgentGameDTO {
 }
 
 export interface GuessAgentStateDTO {
-  turnNumber: number;
-  currentTurn: string;
-  turnEndTime: number | null;
+  turnNumber?: number;
+  currentTurn?: string;
+  turnEndTime?: number | null;
 
   pendingQuestion?: GuessAgentState["pendingQuestion"];
   history: GuessAgentState["history"];
@@ -57,9 +64,16 @@ export function guessAgentMapper(
 ): GuessAgentGameDTO {
   const dto: GuessAgentGameDTO = {
     id: game.id,
+    hostId: game.hostId,
     status: game.status,
-    startingAt: game.startingAt!,
-    startingEndsAt: game.startingEndsAt!,
+
+    createdAt: game.createdAt,
+    ...(game.startingAt && {startingAt: game.startingAt}),
+    ...(game.startingEndsAt && {startingEndsAt: game.startingEndsAt}),
+    ...(game.startedAt && {startedAt: game.startedAt}),
+    ...(game.endedAt && {endedAt: game.endedAt}),
+
+
     players: game.players.map((player) => ({
       id: player.id,
       name: player.name,
@@ -97,9 +111,9 @@ export function guessAgentMapper(
   });
 
   dto.state = {
-    turnNumber: state.turnNumber ?? 1,
-    currentTurn: state.currentTurn ?? "",
-    turnEndTime: state.turnEndTime ?? null,
+    ...(state.turnNumber != null && { turnNumber: state.turnNumber }),
+    ...(state.currentTurn != null && { currentTurn: state.currentTurn }),
+    ...(state.turnEndTime != null && { turnEndTime: state.turnEndTime }),
     ...(state.pendingQuestion && { pendingQuestion: state.pendingQuestion }),
     history: state.history,
     ...(state.result && { result: state.result }),

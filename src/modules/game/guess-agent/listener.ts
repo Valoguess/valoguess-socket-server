@@ -1,7 +1,7 @@
 import type { Server, Socket } from "socket.io";
 
+import { consumeNo } from "./service.js";
 import { guessAgentMapper } from "./mapper.js";
-import { changeTurnFreeFormMode } from "./service.js";
 import { scheduleGameCleanup } from "../core/cleanup.js";
 import { answerQuestion, askQuestion, makeGuess } from "./question.js";
 
@@ -16,9 +16,9 @@ import { ClientEvents, ServerEvents } from "@/shared/consts/events.js";
 
 export function guessAgentGameListener(io: Server, socket: Socket) {
   socket.on(
-    ClientEvents.CHANGE_TURN,
+    ClientEvents.CONSUME_NO,
     asyncHandler(socket, async () => {
-      const game = await changeTurnFreeFormMode(socket.data.id);
+      const game = await consumeNo(socket.data.id);
 
       for (const player of game.players) {
         io.to(player.socketId).emit(
@@ -67,7 +67,7 @@ export function guessAgentGameListener(io: Server, socket: Socket) {
 
       for (const player of game.players) {
         io.to(player.socketId).emit(
-          ServerEvents.GAME_SYNC,
+          game.status === "FINISHED" ? ServerEvents.GAME_END : ServerEvents.GAME_SYNC,
           guessAgentMapper(game, player.id),
         );
       }

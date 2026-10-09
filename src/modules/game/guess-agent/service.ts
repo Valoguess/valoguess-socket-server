@@ -57,6 +57,11 @@ export async function createGuessAgentGame(
 ) {
   const baseGame = createBaseGame(hostId, players);
 
+  if (settings.questionMode === "FREEFORM") {
+    settings.questionCount = 0;
+    settings.timePerRound = -1;
+  }
+
   const game: Game = {
     ...baseGame,
     mode: "GUESS_AGENT",
@@ -87,7 +92,7 @@ export async function startGuessAgentGame(gameId: string, playerId: string) {
 
   game.status = "STARTING";
   game.startingAt = Date.now();
-  game.startingEndsAt = game.startingAt + 7000; // 7 seconds countdown
+  game.startingEndsAt = game.startingAt + 15000; // 15 seconds countdown
 
 
   game.state = {
@@ -132,20 +137,22 @@ export async function beginGuessAgentGame(game: Game, playerId: string) {
   game.status = "PLAYING";
   game.startedAt = Date.now();
 
-  const currentTurn = game.players[Math.floor(Math.random() * 2)]!.id;
 
   if (!game.state) {
     throw new AppError("Game state is missing", "GAME_STATE_MISSING", 500);
   }
-  const questionPool = selectQuestionIds(game.settings.questionCount)
 
-  game.state = {
-    ...game.state,
-    currentTurn,
-    turnNumber: 1,
-    ...(game.settings.questionMode === "PRESET" && { questionPool }),
-  };
-
+  if (game.settings.questionMode === "PRESET") {
+    const questionPool = selectQuestionIds(game.settings.questionCount)
+    const currentTurn = game.players[Math.floor(Math.random() * 2)]!.id;
+  
+    game.state = {
+      ...game.state,
+      currentTurn,
+      turnNumber: 1,
+      questionPool,
+    };
+  }
 
   if (game.settings.timePerRound !== -1) {
     startTurnTimer(game.id, game.settings.timePerRound * 1000);
@@ -156,7 +163,7 @@ export async function beginGuessAgentGame(game: Game, playerId: string) {
   return await saveGame(game);
 }
 
-export async function changeTurnFreeFormMode(playerId: string) {
+export async function consumeNo(playerId: string) { 
   const player = await getPlayerById(playerId);
 
   if (!player) {
@@ -189,7 +196,16 @@ export async function changeTurnFreeFormMode(playerId: string) {
     );
   }
 
-  return await changeTurn(game);
+  if (!game.state) {
+    throw new AppError("Game state is missing", "GAME_STATE_MISSING", 500);
+  }
+
+  if (game.state.playerStates[player.id]?.nosRemaining && game.state.playerStates[player.id]!.nosRemaining > 0) {
+    game.state.playerStates[player.id]!.nosRemaining -= 1;
+    return await saveGame(game);
+  } else {
+    throw new AppError("No more nos available", "NO_NOS_AVAILABLE", 400);
+  }
 }
 
 export async function changeTurn(gameIdentifier: string | Game): Promise<Game> {
