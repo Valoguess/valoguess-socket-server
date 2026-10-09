@@ -6,7 +6,7 @@ import { getGameById, deleteGame } from "./service.js";
 import { updatePlayersGame } from "@/modules/player/service.js";
 import { ServerEvents } from "@/shared/consts/events.js";
 
-const CLEANUP_DELAY = 10_000;
+const CLEANUP_DELAY = 30_000;
 
 export function scheduleGameCleanup(
   io: Server,

@@ -1,6 +1,6 @@
 import type { Server, Socket } from "socket.io";
 
-import { getGameById } from "./service.js";
+import { getGameById, leaveGame } from "./service.js";
 import { guessAgentMapper } from "../guess-agent/mapper.js";
 import { createGameSchema, gameIdSchema } from "./schema.js";
 
@@ -13,7 +13,7 @@ import {
 import { AppError } from "@/shared/utils/error.js";
 import { getPartyById } from "@/modules/party/service.js";
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
-import { updatePlayersGame } from "@/modules/player/service.js";
+import { getPlayerById, updatePlayersGame } from "@/modules/player/service.js";
 import { ClientEvents, ServerEvents } from "@/shared/consts/events.js";
 
 export function gameCoreListener(io: Server, socket: Socket) {
@@ -109,6 +109,8 @@ export function gameCoreListener(io: Server, socket: Socket) {
             );
           }
 
+          const timeUntilStart = updatedGame.startingEndsAt! - Date.now();
+
           setTimeout(async () => {
             const startingGame = await beginGuessAgentGame(updatedGame, currPlayerId);
             for (const player of startingGame.players) {
@@ -117,7 +119,7 @@ export function gameCoreListener(io: Server, socket: Socket) {
                 guessAgentMapper(startingGame, player.id),
               );
             }
-          }, 15000); // 15 seconds countdown
+          }, timeUntilStart ? timeUntilStart : 15000); // 15 seconds countdown
 
           break;
         default:
@@ -125,4 +127,32 @@ export function gameCoreListener(io: Server, socket: Socket) {
       }
     }),
   );
+
+  socket.on(
+    ClientEvents.GAME_LEAVE,
+    asyncHandler(socket, async () => {
+      const player = await getPlayerById(socket.data.id);
+
+      if (!player) {
+        throw new AppError("Player not found", "PLAYER_NOT_FOUND", 404);
+      }
+
+      if (!player.gameId) {
+        throw new AppError("Player is not in a game", "PLAYER_NOT_IN_GAME", 400);
+      }
+
+      const game = await leaveGame(player.gameId, player.id);
+      io.to(socket.id).emit(ServerEvents.GAME_SYNC, null);
+
+      if (game) {
+        for (const player of game.players) {
+          io.to(player.socketId).emit(
+            ServerEvents.GAME_SYNC,
+            guessAgentMapper(game, player.id),
+          );
+        }
+      }
+
+    })
+  )
 }
