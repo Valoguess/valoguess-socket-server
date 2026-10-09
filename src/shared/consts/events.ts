@@ -26,10 +26,14 @@ export const ClientEvents = {
 
   GAME_CREATE: "game:create",
   GAME_START: "game:start",
+  GAME_LEAVE: "game:leave",
 
-  // ==== GUES AGENT SPECIFIC GAME EVENTS ====
+  // ==== GUESs AGENT SPECIFIC GAME EVENTS ====
 
-  CHANGE_TURN: "turn:change",
+  // Free Form Mode
+  CONSUME_NO: "consume:no",
+
+  // Preset Mode
   QUESTION_ASK: "question:ask",
   QUESTION_ANSWER: "question:answer",
   GUESS_SUBMIT: "guess:submit",
@@ -47,7 +51,8 @@ export const ServerEvents = {
   FRIEND_REQUEST_ACCEPTED: "friend:request:accepted",
   FRIEND_REQUEST_DECLINED: "friend:request:declined",
 
-  GAME_SYNC: "game:sync", 
+  GAME_SYNC: "game:sync",
+  GAME_END: "game:end",
 
   ERROR: "app:error",
 } as const;
