@@ -1,8 +1,8 @@
 import type { Server, Socket } from "socket.io";
 
+import { createGameSchema } from "./schema.js";
 import { getGameById, leaveGame } from "./service.js";
 import { guessAgentMapper } from "../guess-agent/mapper.js";
-import { createGameSchema, gameIdSchema } from "./schema.js";
 
 import {
   beginGuessAgentGame,
@@ -13,16 +13,29 @@ import {
 import { AppError } from "@/shared/utils/error.js";
 import { getPartyById } from "@/modules/party/service.js";
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
-import { getPlayerById, updatePlayersGame } from "@/modules/player/service.js";
 import { ClientEvents, ServerEvents } from "@/shared/consts/events.js";
+import { getPlayerById, updatePlayersGame } from "@/modules/player/service.js";
 
 export function gameCoreListener(io: Server, socket: Socket) {
   socket.on(
     ClientEvents.GAME_CREATE,
     asyncHandler(socket, async (payload) => {
-      const { partyId, mode, settings } = createGameSchema.parse(payload);
+      const { mode, settings } = createGameSchema.parse(payload);
       const currPlayerId = socket.data.id;
-      const party = await getPartyById(partyId);
+      const player = await getPlayerById(currPlayerId);
+      if (!player) {
+        throw new AppError("Player not found", "PLAYER_NOT_FOUND", 404);
+      }
+
+      if (!player.partyId) {
+        throw new AppError(
+          "Player is not in a party",
+          "PLAYER_NOT_IN_PARTY",
+          400,
+        );
+      }
+
+      const party = await getPartyById(player.partyId);
 
       if (!party) {
         throw new AppError("Party not found", "PARTY_NOT_FOUND", 404);
@@ -74,10 +87,21 @@ export function gameCoreListener(io: Server, socket: Socket) {
   socket.on(
     ClientEvents.GAME_START,
     asyncHandler(socket, async (payload) => {
-      const { gameId } = gameIdSchema.parse(payload);
       const currPlayerId = socket.data.id;
+      const player = await getPlayerById(currPlayerId);
+      if (!player) {
+        throw new AppError("Player not found", "PLAYER_NOT_FOUND", 404);
+      }
 
-      const game = await getGameById(gameId);
+      if (!player.gameId) {
+        throw new AppError(
+          "Player is not in a game",
+          "PLAYER_NOT_IN_GAME",
+          400,
+        );
+      }
+
+      const game = await getGameById(player.gameId);
 
       if (!game) {
         throw new AppError("Game not found", "GAME_NOT_FOUND", 404);
@@ -91,7 +115,7 @@ export function gameCoreListener(io: Server, socket: Socket) {
         );
       }
 
-      if (game.players[0]!.id !== currPlayerId) {
+      if (game.hostId !== currPlayerId) {
         throw new AppError(
           "Only the game creator can start the game",
           "NOT_GAME_CREATOR",
@@ -101,7 +125,10 @@ export function gameCoreListener(io: Server, socket: Socket) {
 
       switch (game.mode) {
         case "GUESS_AGENT":
-          const updatedGame = await startGuessAgentGame(gameId, currPlayerId);
+          const updatedGame = await startGuessAgentGame(
+            player.gameId,
+            currPlayerId,
+          );
           for (const player of updatedGame.players) {
             io.to(player.socketId).emit(
               ServerEvents.GAME_SYNC,
@@ -111,15 +138,21 @@ export function gameCoreListener(io: Server, socket: Socket) {
 
           const timeUntilStart = updatedGame.startingEndsAt! - Date.now();
 
-          setTimeout(async () => {
-            const startingGame = await beginGuessAgentGame(updatedGame, currPlayerId);
-            for (const player of startingGame.players) {
-              io.to(player.socketId).emit(
-                ServerEvents.GAME_SYNC,
-                guessAgentMapper(startingGame, player.id),
+          setTimeout(
+            async () => {
+              const startingGame = await beginGuessAgentGame(
+                updatedGame,
+                currPlayerId,
               );
-            }
-          }, timeUntilStart ? timeUntilStart : 15000); // 15 seconds countdown
+              for (const player of startingGame.players) {
+                io.to(player.socketId).emit(
+                  ServerEvents.GAME_SYNC,
+                  guessAgentMapper(startingGame, player.id),
+                );
+              }
+            },
+            timeUntilStart ? timeUntilStart : 15000,
+          ); // 15 seconds countdown
 
           break;
         default:
@@ -138,7 +171,11 @@ export function gameCoreListener(io: Server, socket: Socket) {
       }
 
       if (!player.gameId) {
-        throw new AppError("Player is not in a game", "PLAYER_NOT_IN_GAME", 400);
+        throw new AppError(
+          "Player is not in a game",
+          "PLAYER_NOT_IN_GAME",
+          400,
+        );
       }
 
       const game = await leaveGame(player.gameId, player.id);
@@ -152,7 +189,6 @@ export function gameCoreListener(io: Server, socket: Socket) {
           );
         }
       }
-
-    })
-  )
+    }),
+  );
 }

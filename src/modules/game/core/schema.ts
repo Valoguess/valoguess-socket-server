@@ -10,11 +10,3 @@ export const createGameSchema = z.object({
   mode: z.enum(["GUESS_AGENT"]),
   settings: GameSettingsSchema,
 });
-
-export type CreateGamePayload = z.infer<typeof createGameSchema>;
-
-export const gameIdSchema = z.object({
-  gameId: z.string(),
-});
-
-export type GameIdInput = z.infer<typeof gameIdSchema>;
