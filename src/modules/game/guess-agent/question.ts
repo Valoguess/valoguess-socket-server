@@ -3,13 +3,22 @@ import { changeTurn, finishGame } from "./service.js";
 import { getGameById, saveGame } from "../core/service.js";
 
 import { AppError } from "@/shared/utils/error.js";
+import { getPlayerById } from "@/modules/player/service.js";
 
 export async function askQuestion(
-  gameId: string,
   playerId: string,
   questionId: string,
 ): Promise<Game> {
-  const game = await getGameById(gameId);
+  const player = await getPlayerById(playerId);
+  if (!player) {
+    throw new AppError("Player not found", "PLAYER_NOT_FOUND", 404);
+  }
+
+  if (!player.gameId) {
+    throw new AppError("Player is not in a game", "PLAYER_NOT_IN_GAME");
+  }
+  
+  const game = await getGameById(player.gameId);
   if (!game) {
     throw new AppError("Game not found", "GAME_NOT_FOUND", 404);
   }
@@ -76,11 +85,18 @@ export async function askQuestion(
 }
 
 export async function answerQuestion(
-  gameId: string,
   playerId: string,
   answer: "YES" | "NO",
 ): Promise<Game> {
-  const game = await getGameById(gameId);
+  const player = await getPlayerById(playerId);
+  if (!player) {
+    throw new AppError("Player not found", "PLAYER_NOT_FOUND", 404);
+  }
+
+  if (!player.gameId) {
+    throw new AppError("Player is not in a game", "PLAYER_NOT_IN_GAME");
+  }
+  const game = await getGameById(player.gameId);
   if (!game) {
     throw new AppError("Game not found", "GAME_NOT_FOUND", 404);
   }
@@ -122,15 +138,23 @@ export async function answerQuestion(
   delete game.state.pendingQuestion;
   await saveGame(game);
 
-  return changeTurn(gameId);
+  return changeTurn(player.gameId);
 }
 
 export async function makeGuess(
-  gameId: string,
   playerId: string,
   guess: string,
 ): Promise<Game> {
-  const game = await getGameById(gameId);
+  const player = await getPlayerById(playerId);
+  if (!player) {
+    throw new AppError("Player not found", "PLAYER_NOT_FOUND", 404);
+  }
+
+  if (!player.gameId) {
+    throw new AppError("Player is not in a game", "PLAYER_NOT_IN_GAME");
+  }
+
+  const game = await getGameById(player.gameId);
   if (!game) {
     throw new AppError("Game not found", "GAME_NOT_FOUND", 404);
   }

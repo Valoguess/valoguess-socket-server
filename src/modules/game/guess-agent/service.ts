@@ -1,10 +1,11 @@
-import type { GuessAgentSettings } from "./schema.js";
+import type { GuessAgentSettings } from "./types.js";
 import type { Game, GamePlayer } from "../core/types.js";
-import { clearTurnTimer, restartTurnTimer, startTurnTimer } from "./timer.js";
 import { createBaseGame, getGameById, saveGame } from "../core/service.js";
+import { clearTurnTimer, restartTurnTimer, startTurnTimer } from "./timer.js";
 
 import { AppError } from "@/shared/utils/error.js";
 import { AGENTS } from "@/shared/consts/agents.js";
+import { getPlayerById } from "@/modules/player/service.js";
 
 import {
   DIFFICULTY_PERCENTAGES,
@@ -12,7 +13,6 @@ import {
   type QuestionDifficulty,
   type QuestionId,
 } from "@/shared/consts/questions.js";
-import { getPlayerById } from "@/modules/player/service.js";
 
 function shuffle<T>(array: T[]): T[] {
   const result = [...array];
@@ -71,7 +71,7 @@ export async function createGuessAgentGame(
   return await saveGame(game);
 }
 
-export async function startGuessAgentGame(gameId: string, playerId: string) { 
+export async function startGuessAgentGame(gameId: string, playerId: string) {
   const game = await getGameById(gameId);
 
   if (!game) {
@@ -93,7 +93,6 @@ export async function startGuessAgentGame(gameId: string, playerId: string) {
   game.status = "STARTING";
   game.startingAt = Date.now();
   game.startingEndsAt = game.startingAt + 15000; // 15 seconds countdown
-
 
   game.state = {
     history: [],
@@ -137,15 +136,14 @@ export async function beginGuessAgentGame(game: Game, playerId: string) {
   game.status = "PLAYING";
   game.startedAt = Date.now();
 
-
   if (!game.state) {
     throw new AppError("Game state is missing", "GAME_STATE_MISSING", 500);
   }
 
   if (game.settings.questionMode === "PRESET") {
-    const questionPool = selectQuestionIds(game.settings.questionCount)
+    const questionPool = selectQuestionIds(game.settings.questionCount);
     const currentTurn = game.players[Math.floor(Math.random() * 2)]!.id;
-  
+
     game.state = {
       ...game.state,
       currentTurn,
@@ -159,11 +157,10 @@ export async function beginGuessAgentGame(game: Game, playerId: string) {
     game.state.turnEndTime = Date.now() + game.settings.timePerRound * 1000;
   }
 
-
   return await saveGame(game);
 }
 
-export async function consumeNo(playerId: string) { 
+export async function consumeNo(playerId: string) {
   const player = await getPlayerById(playerId);
 
   if (!player) {
@@ -200,7 +197,10 @@ export async function consumeNo(playerId: string) {
     throw new AppError("Game state is missing", "GAME_STATE_MISSING", 500);
   }
 
-  if (game.state.playerStates[player.id]?.nosRemaining && game.state.playerStates[player.id]!.nosRemaining > 0) {
+  if (
+    game.state.playerStates[player.id]?.nosRemaining &&
+    game.state.playerStates[player.id]!.nosRemaining > 0
+  ) {
     game.state.playerStates[player.id]!.nosRemaining -= 1;
     return await saveGame(game);
   } else {
@@ -244,7 +244,6 @@ export async function changeTurn(gameIdentifier: string | Game): Promise<Game> {
   game.state.currentTurn = nextTurnPlayer.id;
   game.state.turnNumber = (game.state.turnNumber ?? 0) + 1;
 
-  
   if (game.settings.timePerRound !== -1) {
     game.state.turnEndTime = Date.now() + game.settings.timePerRound * 1000;
     restartTurnTimer(game.id, game.settings.timePerRound * 1000);
@@ -274,7 +273,7 @@ export async function finishGame(game: Game, winnerId?: string) {
   game.endedAt = Date.now();
 
   if (game.settings.timePerRound !== -1) {
-    clearTurnTimer(game.id);    
+    clearTurnTimer(game.id);
   }
 
   return await saveGame(game);

@@ -32,8 +32,8 @@ export function guessAgentGameListener(io: Server, socket: Socket) {
   socket.on(
     ClientEvents.QUESTION_ASK,
     asyncHandler(socket, async (payload) => {
-      const { gameId, questionId } = askQuestionSchema.parse(payload);
-      const game = await askQuestion(gameId, socket.data.id, questionId);
+      const { questionId } = askQuestionSchema.parse(payload);
+      const game = await askQuestion(socket.data.id, questionId);
 
       for (const player of game.players) {
         io.to(player.socketId).emit(
@@ -47,8 +47,8 @@ export function guessAgentGameListener(io: Server, socket: Socket) {
   socket.on(
     ClientEvents.QUESTION_ANSWER,
     asyncHandler(socket, async (payload) => {
-      const { gameId, answer } = answerQuestionSchema.parse(payload);
-      const game = await answerQuestion(gameId, socket.data.id, answer);
+      const { answer } = answerQuestionSchema.parse(payload);
+      const game = await answerQuestion(socket.data.id, answer);
 
       for (const player of game.players) {
         io.to(player.socketId).emit(
@@ -62,8 +62,8 @@ export function guessAgentGameListener(io: Server, socket: Socket) {
   socket.on(
     ClientEvents.GUESS_SUBMIT,
     asyncHandler(socket, async (payload) => {
-      const { gameId, guess } = makeGuessSchema.parse(payload);
-      const game = await makeGuess(gameId, socket.data.id, guess);
+      const { guess } = makeGuessSchema.parse(payload);
+      const game = await makeGuess(socket.data.id, guess);
 
       for (const player of game.players) {
         io.to(player.socketId).emit(

@@ -10,25 +10,15 @@ export const GuessAgentSettingsSchema = z.object({
   timePerRound: z.number().int(),
 });
 
-export type GuessAgentSettings = z.infer<typeof GuessAgentSettingsSchema>;
-
 export const askQuestionSchema = z.object({
-  gameId: z.string(),
   questionId: z.string(),
 });
 
-export type AskQuestionInput = z.infer<typeof askQuestionSchema>;
-
 export const answerQuestionSchema = z.object({
-  gameId: z.string(),
   answer: z.enum(["YES", "NO"]),
 });
 
-export type AnswerQuestionInput = z.infer<typeof answerQuestionSchema>;
-
 export const makeGuessSchema = z.object({
-  gameId: z.string(),
   guess: z.string(),
 });
 
-export type MakeGuessInput = z.infer<typeof makeGuessSchema>;
