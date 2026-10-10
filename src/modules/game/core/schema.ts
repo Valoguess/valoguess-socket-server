@@ -6,7 +6,6 @@ export const GameSettingsSchema = GuessAgentSettingsSchema;
 export type GameSettings = z.infer<typeof GameSettingsSchema>;
 
 export const createGameSchema = z.object({
-  partyId: z.string(),
   mode: z.enum(["GUESS_AGENT"]),
   settings: GameSettingsSchema,
 });
