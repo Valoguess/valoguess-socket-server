@@ -6,6 +6,7 @@ import {
   partyInviteDeclineInput,
   partyKickInput,
   partyIdInput,
+  partyChatMessageInput,
 } from "./schema.js";
 
 import {
@@ -49,15 +50,16 @@ export function partyListener(io: Server, socket: Socket) {
   socket.on(
     ClientEvents.PARTY_INVITE_SEND,
     asyncHandler(socket, async (payload) => {
-      const { partyId, invitedPlayerId } = partyInviteSendInput.parse(payload);
+      const { invitedPlayerId } = partyInviteSendInput.parse(payload);
       
       const currPlayer = await getPlayerById(socket.data.id);
       if (!currPlayer) {
         throw new AppError("Player not found", "PLAYER_NOT_FOUND", 404);
       }
-      
-      let party = await getPartyById(partyId || "");
-      if (!party) {
+
+      let party;
+
+      if (!currPlayer.partyId) {
         party = await createParty({
           id: currPlayer.id,
           name: currPlayer.name,
@@ -68,6 +70,11 @@ export function partyListener(io: Server, socket: Socket) {
         socket.emit(ServerEvents.PARTY_SYNC, party);
         currPlayer.partyId = party.id;
         await savePlayer(currPlayer);
+      } else {
+        party = await getPartyById(currPlayer.partyId);
+        if (!party) {
+          throw new AppError("Party not found", "PARTY_NOT_FOUND", 404);
+        }
       }
 
       const invitedPlayerSocketId = await invitePlayerToParty(
@@ -169,7 +176,8 @@ export function partyListener(io: Server, socket: Socket) {
 
   socket.on(
     ClientEvents.PARTY_CHAT,
-    asyncHandler(socket, async (message: string) => {
+    asyncHandler(socket, async (payload) => {
+      const { message } = partyChatMessageInput.parse(payload);
       const currPlayer = await getPlayerById(socket.data.id);
 
       if (!currPlayer) {
