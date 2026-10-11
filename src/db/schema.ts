@@ -9,6 +9,7 @@
   pgEnum,
   uuid,
 } from "drizzle-orm/pg-core";
+import { defineRelations } from "drizzle-orm";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -79,13 +80,46 @@ export const friendship = pgTable("friendship", {
   
 }, (table) => [
   uniqueIndex("friendship_requester_receiver_uidx")
-    .on(table.receiverId, table.receiverId),
+    .on(table.requesterId, table.receiverId),
 
   index("friendship_requester_idx")
-    .on(table.receiverId, table.status),
+    .on(table.requesterId, table.status),
 
   index("friendship_receiver_idx")
     .on(table.receiverId, table.status),
 ]);
 
 export type Friendship = typeof friendship.$inferSelect;
+
+export const relations = defineRelations(
+  {
+    user,
+    friendship,
+  },
+
+  (r) => ({
+    user: {
+      sentFriendRequests: r.many.friendship({
+        from: r.user.id,
+        to: r.friendship.requesterId,
+      }),
+
+      receivedFriendRequests: r.many.friendship({
+        from: r.user.id,
+        to: r.friendship.receiverId,
+      }),
+    },
+
+    friendship: {
+      requester: r.one.user({
+        from: r.friendship.requesterId,
+        to: r.user.id,
+      }),
+
+      receiver: r.one.user({
+        from: r.friendship.receiverId,
+        to: r.user.id,
+      }),
+    },
+  })
+);

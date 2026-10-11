@@ -10,7 +10,6 @@ export const envSchema = z.object({
 
   FRONTEND_URL: z.string().default("http://localhost:3000"),
   NEXTJS_INTERNAL_URL: z.string().default("http://localhost:3000"),
-  INTERNAL_API_SECRET: z.string().default("secret"),
 
   DATABASE_URL: z.string().default("postgres://postgres:example@localhost:5432/postgres"),
 

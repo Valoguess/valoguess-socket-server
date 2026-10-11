@@ -1,7 +1,7 @@
 export interface Friend {
   id: string;
   name: string;
-  username: string | null;
+  username: string;
   image: string | null;
   online: boolean;
 }
