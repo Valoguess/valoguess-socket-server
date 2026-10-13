@@ -78,8 +78,8 @@ export function createSocketServer(server: Server) {
       next();
     });
 
-    registerHandlers(io, socket);
     await handleConnection(io, socket);
+    registerHandlers(io, socket);
     
     socket.on("disconnecting", async () => {
       await handleDisconnect(io, socket);  
