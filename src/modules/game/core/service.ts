@@ -7,7 +7,6 @@ import { generateId } from "@/shared/utils/generateId.js";
 import { updatePlayerGame } from "@/modules/player/service.js";
 
 const GAME_PREFIX = "game:";
-const GAME_TTL = 60 * 10; // 10 minutes
 
 const gameKey = (gameId: string) => `${GAME_PREFIX}${gameId}`;
 
@@ -24,7 +23,7 @@ export async function getGameById(gameId: string) {
 }
 
 export async function saveGame(game: Game) {
-  await redis.setex(gameKey(game.id), GAME_TTL, JSON.stringify(game));
+  await redis.set(gameKey(game.id), JSON.stringify(game));
   return game;
 }
 
