@@ -29,6 +29,7 @@ export async function handleConnection(io: Server, socket: Socket) {
 
     if (player) {
       player.socketId = socket.id;
+      player.name = socket.data.name;
       await savePlayer(player);
 
       if (player.partyId) {
