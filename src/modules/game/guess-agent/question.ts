@@ -168,7 +168,10 @@ export async function makeGuess(
     throw new AppError("Player not found", "PLAYER_NOT_FOUND", 404);
   }
 
-  if (game.state.currentTurn !== playerId) {
+  if (
+    game.state.currentTurn !== playerId &&
+    game.settings.questionMode !== "FREEFORM"
+  ) {
     throw new AppError("It's not your turn", "NOT_YOUR_TURN");
   }
 
