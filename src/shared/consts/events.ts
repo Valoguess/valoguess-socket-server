@@ -37,6 +37,9 @@ export const ClientEvents = {
   QUESTION_ASK: "question:ask",
   QUESTION_ANSWER: "question:answer",
   GUESS_SUBMIT: "guess:submit",
+
+  // AUTH 
+  AUTH_REFRESH: "auth:refresh",
 } as const;
 
 export const ServerEvents = {

@@ -1,10 +1,10 @@
-import { createServer } from "node:http";
-import { createSocketServer } from "@/setup/socket.js";
 import helmet from "helmet";
+import { createServer } from "node:http";
+import { createSocketServer } from "@/setup/socket";
 
 const runHelmet = helmet();
 const PORT = Number(process.env.PORT ?? 5000);
-const httpServer = createServer(((req, res) => {
+const httpServer = createServer((req, res) => {
   runHelmet(req, res, (err) => {
     if (err) {
       res.statusCode = 500;
@@ -14,8 +14,7 @@ const httpServer = createServer(((req, res) => {
       return;
     }
   });
-}));
-
+});
 
 createSocketServer(httpServer);
 
