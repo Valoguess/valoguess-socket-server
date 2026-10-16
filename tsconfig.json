@@ -10,9 +10,11 @@
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
+    "module": "esnext",
+    "moduleResolution": "bundler", 
     "target": "esnext",
     "types": ["node"],
+    "esModuleInterop": true,
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -46,7 +48,4 @@
     
   },
   "include": ["src/**/*", "tests/**/*", "src/shared/@types/**/*.d.ts"],
-  "ts-node": { 
-    "require": ["tsconfig-paths/register"] 
-  }
 }
