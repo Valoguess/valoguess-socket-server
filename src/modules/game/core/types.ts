@@ -1,9 +1,10 @@
+import { gameModeEnum } from "@/db/schema.js";
 import type {
   GuessAgentSettings,
   GuessAgentState,
 } from "../guess-agent/types.js";
 
-export type GameMode = "GUESS_AGENT" | "CODENAMES" | "IMPOSTER";
+export type GameMode = typeof gameModeEnum.enumValues[number];
 export type GameStatus = "WAITING" | "STARTING" | "PLAYING" | "FINISHED";
 
 export interface GamePlayer {

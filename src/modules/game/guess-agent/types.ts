@@ -2,7 +2,7 @@ export type GuessAgentQuestionMode =
   | "PRESET"
   | "FREEFORM";
 
-export interface GuessAgentSettings {
+export type GuessAgentSettings = {
   questionMode: GuessAgentQuestionMode;
 
   maxNos: number;
