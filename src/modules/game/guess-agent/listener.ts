@@ -2,7 +2,7 @@ import type { Server, Socket } from "socket.io";
 
 import { consumeNo } from "./service.js";
 import { guessAgentMapper } from "./mapper.js";
-import { scheduleGameCleanup } from "../core/cleanup.js";
+import { cleanupGame } from "../core/cleanup.js";
 import { answerQuestion, askQuestion, makeGuess } from "./question.js";
 
 import {
@@ -75,7 +75,7 @@ export function guessAgentGameListener(io: Server, socket: Socket) {
 
       if (game.status === "FINISHED") {
         await saveGameToDB(game);
-        scheduleGameCleanup(io, game);
+        await cleanupGame(game);
       }
     }),
   );
