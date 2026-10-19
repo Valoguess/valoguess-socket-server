@@ -12,6 +12,7 @@ import { areFriends } from "@/modules/friends/repository.js";
 import { generateId } from "@/shared/utils/generateId.js";
 
 const PARTY_PREFIX = "party:";
+const PARTY_TTL = 60 * 30 // 30 mins
 
 const partyKey = (partyId: string) => `${PARTY_PREFIX}${partyId}`;
 
@@ -28,7 +29,7 @@ export async function getPartyById(partyId: string) {
 }
 
 export async function saveParty(party: Party) {
-  await redis.set(partyKey(party.id), JSON.stringify(party));
+  await redis.setex(partyKey(party.id), PARTY_TTL, JSON.stringify(party));
   return party;
 }
 
