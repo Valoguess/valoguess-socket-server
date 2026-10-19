@@ -13,6 +13,7 @@ import {
 
 import { asyncHandler } from "@/shared/utils/asyncHandler.js";
 import { ClientEvents, ServerEvents } from "@/shared/consts/events.js";
+import { saveGameToDB } from "../core/history.js";
 
 export function guessAgentGameListener(io: Server, socket: Socket) {
   socket.on(
@@ -73,6 +74,7 @@ export function guessAgentGameListener(io: Server, socket: Socket) {
       }
 
       if (game.status === "FINISHED") {
+        await saveGameToDB(game);
         scheduleGameCleanup(io, game);
       }
     }),
