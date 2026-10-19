@@ -19,7 +19,7 @@ export const RATE_LIMITS = {
     refillRate: 1,
   },
   PLAYER_HEARTBEAT: {
-    maxTokens: 3,
-    refillRate: 0.1,
+    maxTokens: 2,
+    refillRate: 0.04,
   }
 };
