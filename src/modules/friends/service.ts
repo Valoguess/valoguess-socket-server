@@ -6,20 +6,21 @@ import { redis } from "@/setup/redis.js";
 
 export async function getFriendsPresence(playerId: string) {
   const friends = await getFriends(playerId);
+  if (friends.length === 0) return [];
 
-  return await Promise.all(
-    friends.map(async (friend) => {
-      const player = await getPlayerById(friend.friendId);
-      return {
-        userId: friend.friendId,
-        online: player?.socketId != null,
-        socketId: player?.socketId,
-      };
-    }),
-  );
+  const keys = friends.map((friend) => `player:${friend.friendId}`);
+  const players = await redis.mget(keys);
+
+  return friends.map((friend, index) => ({
+    userId: friend.friendId,
+    online: Boolean(players[index]),
+    socketId: players[index] ? JSON.parse(players[index]!).socketId : null,
+  }));
 }
 
-export async function getFriendsWithPresence(friends: Omit<Friend, "online">[]) {
+export async function getFriendsWithPresence(
+  friends: Omit<Friend, "online">[],
+) {
   if (friends.length === 0) return [];
 
   const keys = friends.map((friend) => `player:${friend.id}`);
