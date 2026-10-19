@@ -74,7 +74,6 @@ export function guessAgentGameListener(io: Server, socket: Socket) {
       }
 
       if (game.status === "FINISHED") {
-        await saveGameToDB(game);
         await cleanupGame(game);
       }
     }),

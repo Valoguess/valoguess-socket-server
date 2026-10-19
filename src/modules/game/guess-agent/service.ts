@@ -13,6 +13,7 @@ import {
   type QuestionDifficulty,
   type QuestionId,
 } from "@/shared/consts/questions.js";
+import { saveGameToDB } from "../core/history.js";
 
 function shuffle<T>(array: T[]): T[] {
   const result = [...array];
@@ -276,6 +277,7 @@ export async function finishGame(game: Game, winnerId?: string) {
     clearTurnTimer(game.id);
   }
 
+  await saveGameToDB(game);
   return await saveGame(game);
 }
 

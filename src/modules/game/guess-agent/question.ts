@@ -217,7 +217,10 @@ export async function makeGuess(
       return await finishGame(game, playerId);
     } else if (!isOpponentGuessCorrect) {
       return await finishGame(game, playerId);
+    } else {
+      return await finishGame(game);
     }
+    
   } else {
     if (!playerGuessesExhausted) {
       playerState.guessesRemaining--;
@@ -230,6 +233,4 @@ export async function makeGuess(
       }
     }
   }
-
-  return await saveGame(game);
 }
