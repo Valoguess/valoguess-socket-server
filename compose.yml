@@ -1,15 +1,11 @@
 services:
   socket-server:
     build: .
-    container_name: valoguess-socket-server
     restart: unless-stopped
-
     ports:
       - "5000:5000"
-
     env_file:
       - .env
-
     depends_on:
       - redis
     networks:
@@ -17,11 +13,8 @@ services:
 
   redis:
     image: redis:8-alpine
-    container_name: valoguess-socket-redis
     restart: unless-stopped
-
     command: ["redis-server", "--appendonly", "yes"]
-
     volumes:
       - redis-data:/data
     networks:
