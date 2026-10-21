@@ -76,11 +76,10 @@ export async function leaveGame(gameId: string, playerId: string) {
 
   switch (game.mode) {
     case "GUESS_AGENT":
-      await finishGuessAgentGame(game, game.players[0]!.id);
-      break;
+      return await finishGuessAgentGame(game, game.players[0]!.id);
   }
 
-  return await saveGame(game);
+  // return await saveGame(game);
 }
 
 export async function reconnectPlayerToGame(

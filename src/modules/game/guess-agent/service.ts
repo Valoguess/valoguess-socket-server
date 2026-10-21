@@ -276,9 +276,10 @@ export async function finishGame(game: Game, winnerId?: string) {
   if (game.settings.timePerRound !== -1) {
     clearTurnTimer(game.id);
   }
+  const savedGame = await saveGame(game);
 
   await saveGameToDB(game);
-  return await saveGame(game);
+  return savedGame;
 }
 
 export async function resetGame(

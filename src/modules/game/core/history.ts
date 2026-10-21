@@ -3,43 +3,47 @@ import { game as gameSchema, gamePlayer } from "@/db/schema";
 import type { Game } from "./types.js";
 
 export async function saveGameToDB(game: Game) {
-  if (game.status !== "FINISHED" || !game.endedAt) {
-    throw new Error("Cannot save an unfinished game");
+  try {
+    if (game.status !== "FINISHED" || !game.endedAt) {
+      throw new Error("Cannot save an unfinished game");
+    }
+
+    const history = (() => {
+      switch (game.mode) {
+        case "GUESS_AGENT":
+          return prepareGuessAgentHistory(game);
+
+        default:
+          throw new Error(`History preparation not implemented for ${game.mode}`);
+      }
+    })();
+
+    await db.transaction(async (tx) => {
+      const gameRecord = await tx.insert(gameSchema).values({
+        mode: game.mode,
+        hostId: game.hostId,
+        settings: game.settings,
+        summary: history.summary,
+        startedAt: new Date(game.startedAt!),
+        endedAt: new Date(game.endedAt!),
+        createdAt: new Date(game.createdAt),
+      }).returning();
+
+      if (history.players.length > 0) {
+        await tx.insert(gamePlayer).values(
+          history.players.map((player) => ({
+            gameId: gameRecord[0]!.id,
+            userId: player.userId,
+            name: player.name,
+            outcome: player.outcome,
+            details: player.details,
+          })),
+        );
+      }
+    });
+  } catch (error) {
+    console.error("Failed to save game to database:", error);
   }
-
-  const history = (() => {
-    switch (game.mode) {
-      case "GUESS_AGENT":
-        return prepareGuessAgentHistory(game);
-
-      default:
-        throw new Error(`History preparation not implemented for ${game.mode}`);
-    }
-  })();
-
-  await db.transaction(async (tx) => {
-    const gameRecord = await tx.insert(gameSchema).values({
-      mode: game.mode,
-      hostId: game.hostId,
-      settings: game.settings,
-      summary: history.summary,
-      startedAt: new Date(game.startedAt!),
-      endedAt: new Date(game.endedAt!),
-      createdAt: new Date(game.createdAt),
-    }).returning();
-
-    if (history.players.length > 0) {
-      await tx.insert(gamePlayer).values(
-        history.players.map((player) => ({
-          gameId: gameRecord[0]!.id,
-          userId: player.userId,
-          name: player.name,
-          outcome: player.outcome,
-          details: player.details,
-        })),
-      );
-    }
-  });
 }
 
 export function prepareGuessAgentHistory(game: Game) {
