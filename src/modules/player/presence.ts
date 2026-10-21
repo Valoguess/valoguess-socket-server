@@ -110,6 +110,21 @@ export async function handleDisconnect(io: Server, socket: Socket) {
           });
         }
       }
+
+      if (player.gameId) {
+        const game = await getGameById(player.gameId);
+        if (game && game.status === "PLAYING") {
+          const opponent = game.players.find((p) => p.id !== player.id);
+          if (opponent?.socketId) {
+            io.to(opponent.socketId).emit(ServerEvents.OPPONENT_DISCONNECTED, {
+              playerId: player.id,
+              playerName: player.name,
+              reconnectWindowMs: RECONNECT_GRACE_PERIOD,
+            });
+          }
+        }
+      }
+
       setTimeout(async () => {
         try {
           await handlePlayerInactive(io, player.id);
