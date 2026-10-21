@@ -70,7 +70,7 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "offense",
     difficulty: "medium",
     description:
-      "Can the Agent damage enemies without needing to directly attack them with a normal weapon?",
+      "Can the Agent damage enemies with an ability rather than a normal weapon attack?",
   },
 
   "ultimate-deals-damage": {
@@ -86,7 +86,7 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "offense",
     difficulty: "high",
     description:
-      "Can the Agent's ultimate directly eliminate an enemy without needing a normal weapon attack?",
+      "Can the Agent's ultimate directly eliminate an enemy without requiring a normal weapon attack?",
   },
 
   // =========================================================
@@ -98,7 +98,7 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "defense",
     difficulty: "low",
     description:
-      "Can the Agent create a wall or solid barrier that blocks movement or sight?",
+      "Can the Agent create a physical barrier that blocks movement?",
   },
 
   "can-block-bullets": {
@@ -114,7 +114,7 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "defense",
     difficulty: "low",
     description:
-      "Can the Agent create temporary cover that helps a player avoid being seen or attacked?",
+      "Can the Agent create temporary cover that helps players avoid being seen or attacked?",
   },
 
   "can-protect-an-ally": {
@@ -130,7 +130,7 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "defense",
     difficulty: "low",
     description:
-      "Can the Agent make an area dangerous or difficult for enemies to enter or stay in?",
+      "Can the Agent make an area dangerous for enemies to enter or remain in?",
   },
 
   "can-hold-an-area": {
@@ -138,35 +138,27 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "defense",
     difficulty: "medium",
     description:
-      "Can the Agent use an ability to make it harder for enemies to enter or take control of an area?",
+      "Can the Agent use an ability to defend an area and make it harder for enemies to take control of it?",
   },
 
   // =========================================================
   // INFORMATION
   // =========================================================
 
-  "can-find-enemies": {
-    label: "Can Find Enemy Locations",
-    category: "information",
-    difficulty: "low",
-    description:
-      "Can the Agent use an ability to get information about where enemies are?",
-  },
-
   "can-reveal-enemies": {
     label: "Can Reveal Enemy Locations",
     category: "information",
-    difficulty: "medium",
+    difficulty: "low",
     description:
-      "Can the Agent use an ability that shows enemy locations to the Agent or their team?",
+      "Can the Agent use an ability that reveals enemy positions to themselves or their team?",
   },
 
   "can-get-information-safely": {
-    label: "Can Get Information From Safety",
+    label: "Can Gather Information From Safety",
     category: "information",
     difficulty: "medium",
     description:
-      "Can the Agent use an ability to check an area or gather information without fully entering it?",
+      "Can the Agent gather information about an area without fully entering it?",
   },
 
   "can-track-an-enemy": {
@@ -174,15 +166,15 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "information",
     difficulty: "high",
     description:
-      "Can one of the Agent's abilities continue following or tracking an enemy after finding them?",
+      "Can one of the Agent's abilities continue following or tracking an enemy after detecting them?",
   },
 
   "can-see-enemies-through-walls": {
-    label: "Can Find Enemies Through Walls",
+    label: "Can Detect Enemies Through Walls",
     category: "information",
     difficulty: "medium",
     description:
-      "Can the Agent get information about an enemy's location even when the enemy is behind a wall?",
+      "Can the Agent detect enemy positions when enemies are behind walls?",
   },
 
   "can-detect-nearby-enemies": {
@@ -190,7 +182,7 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "information",
     difficulty: "low",
     description:
-      "Can the Agent use an ability that detects enemies when they are within a certain area or range?",
+      "Can the Agent detect enemies within a specific area or range without necessarily revealing their exact positions?",
   },
 
   // =========================================================
@@ -318,7 +310,7 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "control",
     difficulty: "medium",
     description:
-      "Can the Agent use an ability that gives enemies an effect that makes fighting or moving harder?",
+      "Can the Agent use an ability that makes enemies less effective at fighting or moving through an impairing effect?",
   },
 
   // =========================================================
@@ -354,7 +346,7 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "support",
     difficulty: "high",
     description:
-      "Can the Agent bring a dead teammate back into the round?",
+      "Can the Agent bring an eliminated teammate back into the round?",
   },
 
   "can-help-an-ally-directly": {
@@ -362,7 +354,7 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "support",
     difficulty: "low",
     description:
-      "Does the Agent have an ability that directly gives a teammate a useful effect?",
+      "Does the Agent have an ability that directly gives a teammate a beneficial effect?",
   },
 
   // =========================================================
@@ -374,7 +366,7 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "utility",
     difficulty: "low",
     description:
-      "Can the Agent create something that stops enemies from seeing through an area?",
+      "Can the Agent create something that blocks enemies' vision through an area?",
   },
 
   "can-impair-vision": {
@@ -398,7 +390,7 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "utility",
     difficulty: "low",
     description:
-      "Can the Agent leave an ability active in a location after placing it?",
+      "Can the Agent leave an ability active at a location after placing it?",
   },
 
   "can-control-placed-utility": {
@@ -422,15 +414,7 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "utility",
     difficulty: "medium",
     description:
-      "Can one of the Agent's abilities become available again during the same round?",
-  },
-
-  "can-create-a-decoy": {
-    label: "Can Create a Decoy",
-    category: "utility",
-    difficulty: "high",
-    description:
-      "Can the Agent create something that is meant to trick or distract enemies?",
+      "Can an ability be used again during the same round after its initial use?",
   },
 
   "uses-thrown-or-launched-abilities": {
@@ -470,11 +454,11 @@ export const QUESTIONS: Record<QuestionId, Question> = {
   },
 
   "can-create-a-copy": {
-    label: "Can Create a Copy",
+    label: "Can Create a Decoy or Copy",
     category: "unique",
     difficulty: "high",
     description:
-      "Can the Agent create a copy, clone, or fake version of themselves?",
+      "Can the Agent create a fake version, clone, or imitation of themselves to trick or distract enemies?",
   },
 
   "can-become-invulnerable": {
@@ -486,11 +470,11 @@ export const QUESTIONS: Record<QuestionId, Question> = {
   },
 
   "can-act-after-death": {
-    label: "Can Act After Death",
+    label: "Can Use Abilities After Death",
     category: "unique",
     difficulty: "high",
     description:
-      "Can the Agent still use or control something after their body has been eliminated?",
+      "Can the Agent continue using or controlling an ability after being eliminated?",
   },
 
   "can-return-after-death": {
@@ -498,7 +482,7 @@ export const QUESTIONS: Record<QuestionId, Question> = {
     category: "unique",
     difficulty: "high",
     description:
-      "Can the Agent come back into the round after being eliminated?",
+      "Can the Agent resurrect themselves and re-enter the round after being eliminated?",
   },
 
   "can-affect-the-spike": {
@@ -525,19 +509,11 @@ export const QUESTIONS: Record<QuestionId, Question> = {
       "Can the Agent choose where to use an ability through a map-style targeting view?",
   },
 
-  "has-rechargeable-abilities": {
-    label: "Has Rechargeable Abilities",
-    category: "unique",
-    difficulty: "medium",
-    description:
-      "Can one of the Agent's abilities recharge and become available again during a round?",
-  },
-
   "has-a-special-ultimate-effect": {
     label: "Has a Unique Ultimate Effect",
     category: "unique",
     difficulty: "high",
     description:
-      "Does the Agent's ultimate do something very different from simply dealing damage or helping with normal combat?",
+      "Does the Agent's ultimate do something distinctive beyond simply dealing damage or providing a typical combat benefit?",
   },
 };
