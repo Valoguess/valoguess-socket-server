@@ -6,7 +6,6 @@ export const envSchema = z.object({
 
   BASE_URL: z.string().default("http://localhost:3000"),
   PORT: z.coerce.number().default(5000),
-  CORS_ORIGIN: z.string().default("*"),
 
   FRONTEND_URL: z.string().default("http://localhost:3000"),
   NEXTJS_INTERNAL_URL: z.string().default("http://localhost:3000"),

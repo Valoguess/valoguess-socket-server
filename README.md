@@ -1,245 +1,120 @@
 # ValoGuess Socket Server
 
-The dedicated real-time backend for [ValoGuess](https://github.com/Valoguess/valoguess), a 1v1 tactical deduction web game. Built with Node.js, Socket.IO, Redis, and PostgreSQL, this service handles stateful multiplayer lobbies, matchmaking parties, turn timers, player presence, rate limiting, and in-match deduction logic.
+This is the real-time server for
+[ValoGuess](https://github.com/Valoguess/valoguess). It handles parties,
+player presence, and live matches over Socket.IO.
 
----
+The web app handles sign-in and most profile-related actions. This
+server verifies the client's JWT, manages active game state, and uses
+Redis for temporary data.
 
-## Table of Contents
+## How it works
 
-- [Architecture & Real-Time Flow](#architecture--real-time-flow)
-- [Core Systems & Implementation Details](#core-systems--implementation-details)
-  - [Authentication via JWKS](#1-authentication-via-jwks)
-  - [Token-Bucket Rate Limiting](#2-token-bucket-rate-limiting)
-  - [Player Presence & Reconnection Handling](#3-player-presence--reconnection-handling)
-  - [Guess the Agent Engine](#4-guess-the-agent-engine)
-- [Implemented Socket Events](#implemented-socket-events)
-- [Tech Stack](#tech-stack)
-- [Directory Structure](#directory-structure)
-- [Getting Started](#getting-started)
-- [Related Repositories](#related-repositories)
-- [License](#license)
-
----
-
-## Architecture & Real-Time Flow
-
-```
-┌────────────────────────────────────────────────────────┐
-│                   Next.js Frontend                     │
-│        (Issues JWT via Better-Auth & exposes JWKS)     │
-└───────────────────────────┬────────────────────────────┘
-                            │
-               WebSocket Handshake (JWT token)
-                            │
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│               ValoGuess Socket Server                  │
-│                                                        │
-│  1. Handshake Auth: Validate JWT against Next.js JWKS  │
-│  2. Token-Bucket Rate Limiter (Redis-backed per event) │
-│  3. Player Presence & Reconnection Manager (60s grace) │
-│  4. Module Listeners:                                  │
-│     ├── Player: Heartbeat & socket-to-player mappings  │
-│     ├── Friends: Live request sync & presence updates  │
-│     ├── Party: Lobbies, codes (#id), and party chat    │
-│     └── Game: Guess Agent state machine & turn timers  │
-└──────────────┬──────────────────────────┬──────────────┘
-               │                          │
-               ▼                          ▼
-      ┌────────────────┐         ┌─────────────────┐
-      │  Redis Cache   │         │ PostgreSQL (DB) │
-      │  ioredis       │         │ Drizzle ORM     │
-      │                │         │                 │
-      │ - game:{id}    │         │ - users         │
-      │ - player:{id}  │         │ - friendships   │
-      │ - party:{id}   │         │ - game records  │
-      │ - ratelimit:*  │         │ - match history │
-      └────────────────┘         └─────────────────┘
+``` text
+Next.js web app
+  │
+  │ Socket.IO + JWT
+  ▼
+Socket server
+  ├── Authenticates connections
+  ├── Manages parties and friends
+  ├── Runs match logic and timers
+  └── Tracks player presence
+       │             │
+       ▼             ▼
+     Redis       PostgreSQL
+  temporary      match history
+  game state     and persistent data
 ```
 
----
+The socket server verifies JWTs against the JWKS endpoint exposed by the
+Next.js app. PostgreSQL stores persistent records, while Redis holds
+live state such as parties, active games, presence, and rate-limit data.
 
-## Core Systems & Implementation Details
+## Current features
 
-### 1. Authentication via JWKS
-Instead of maintaining a separate user credentials store, the socket server relies on Better-Auth running on the Next.js frontend:
-- When a client connects, it passes a signed JWT in `socket.handshake.auth.token`.
-- The connection middleware (`src/setup/socket/middleware.ts`) verifies the token against the frontend's JWKS endpoint (`${NEXTJS_INTERNAL_URL}/api/auth/jwks`) using `jose`.
-- Sockets receive an authenticated `socket.data.id` and `socket.data.name`. Unauthenticated or invalid tokens are rejected with a 401 `AUTH_ERROR`.
-- If a session token refreshes mid-session, clients emit `auth:refresh` to re-verify identity without dropping WebSocket connections.
+-   **Parties:** create and join parties, invite friends, and use party
+    chat.
+-   **Friends and presence:** sync friend requests and show online
+    status.
+-   **Guess the Agent:** run 1v1 matches with preset or freeform
+    questions, turn timers, and secret-agent handling.
+-   **Reconnects:** players can reconnect within a 60-second grace
+    period and restore their party or match state.
+-   **Rate limiting:** Redis-backed token buckets limit incoming socket
+    events.
+-   **Match history:** completed matches are saved to PostgreSQL.
 
-### 2. Token-Bucket Rate Limiting
-To prevent socket spam, an interception middleware (`src/setup/socket/middleware.ts` + `src/shared/rateLimit/tokenBucket.ts`) executes a Redis-backed token bucket algorithm for incoming client events:
-- Rate limits are configured per event type in `src/shared/rateLimit/limits.ts` (e.g., `QUESTION_ASK`: 3 tokens / 1 refill per second; `GUESS_SUBMIT`: 3 tokens / 1 refill per second; `CHAT_MESSAGE`: 5 tokens / 1 refill per second).
-- Excess events return an `app:error` with code `RATE_LIMITED` (429) without crashing the handler.
+An Imposter mode is planned for ValoGuess and will be added to the
+server as its implementation progresses.
 
-### 3. Player Presence & Reconnection Handling
-Socket connections map directly to persistent player records stored in Redis (`src/modules/player/presence.ts`):
-- **Connect**: Binds the active `socketId` to the `playerId`. If the player previously belonged to an active party or in-progress match, they automatically rejoin the relevant Socket.IO room, receive a state sync, and their friends receive a `friends:presence` update (`online: true`).
-- **Disconnect & 60s Grace Period**: On socket disconnection, the player's `socketId` is set to `null` and friends are notified (`online: false`). A 60-second timer (`RECONNECT_GRACE_PERIOD`) starts. If the player reconnects before the timer expires, their game and party state are fully restored.
-- **Forfeit / Cleanup**: If the player does not reconnect within 60 seconds, `handlePlayerInactive` triggers: the player leaves the party, forfeits their active game, and their Redis record is purged.
+## Tech stack
 
-### 4. Guess the Agent Engine (`src/modules/game/guess-agent/`)
-The primary game mode implements a 1v1 deduction state machine:
-- **Game Lifecycle**:
-  1. `WAITING`: Players in party room before match start.
-  2. `STARTING`: 15-second intro countdown. Two secret agents are randomly dealt from the 26-agent roster (`src/shared/consts/agents.ts`), one to each player.
-  3. `PLAYING`: Turn-by-turn question cycle.
-  4. `ENDED`: Game concludes when a correct guess is made, maximum guesses/NOs are exhausted, or turn timers run out.
-- **Information Hiding**: To prevent client-side inspection or cheating, `guessAgentMapper` filters outgoing `game:sync` payloads so each socket only receives their own `secretAgent`; the opponent's card remains hidden on the server until game conclusion.
-- **Modes Supported**:
-  - **Preset Mode**: Server samples a balanced pool of questions from `src/shared/consts/questions.ts` categorized across difficulties (low, medium, high). Players alternate asking questions from the pool and answering YES or NO.
-  - **Freeform Mode**: Players ask custom verbal/text questions. Answering NO decrements the questioner's NO quota (`maxNos`).
-- **Turn Timers**: Handled server-side with Node.js timeouts (`src/modules/game/guess-agent/timer.ts`). If a player fails to act within the round timer, their turn automatically passes or forfeits.
-- **Persistence**: Completed matches are saved directly to PostgreSQL (`src/modules/game/core/history.ts`) with player outcomes, secret agents, and questions asked for career history tracking.
+-   Node.js, TypeScript, and Socket.IO
+-   Redis with `ioredis`
+-   PostgreSQL with Drizzle ORM
+-   `jose` for JWT/JWKS verification
+-   Zod for validation
+-   `helmet` for HTTP security headers
+-   pnpm, `tsdown`, and `tsx`
 
----
+## Project structure
 
-## Implemented Socket Events
-
-### Client-to-Server (`ClientEvents`)
-| Event | Payload | Description |
-|---|---|---|
-| `player:heartbeat` | `{}` | Keeps active socket connection alive |
-| `party:create` | `{}` | Creates a new 2-player party |
-| `party:leave` | `{}` | Leaves current party |
-| `party:kick` | `{ guestId }` | Host kicks guest from party |
-| `party:invite:send` | `{ friendId }` | Sends a party invitation to a friend |
-| `party:invite:accept` | `{ partyId }` | Accepts an invitation and joins party |
-| `party:invite:decline` | `{ partyId, senderId }` | Declines an incoming party invitation |
-| `party:chat` | `{ message }` | Sends a message to party chat |
-| `friend:request:send` | `{ receiverId }` | Sends a friend request |
-| `friend:request:accept` | `{ requesterId }` | Accepts an incoming friend request |
-| `friend:request:decline`| `{ requesterId }` | Declines an incoming friend request |
-| `game:create` | `{ mode, settings }` | Creates game instance from current party |
-| `game:start` | `{}` | Host initiates match start countdown |
-| `game:leave` | `{}` | Forfeits and exits current match |
-| `question:ask` | `{ questionId }` | (Preset) Asks question from pool |
-| `question:answer` | `{ answer: "YES" \| "NO" }` | Answers opponent's active question |
-| `consume:no` | `{}` | (Freeform) Consumes a NO from player's quota |
-| `guess:submit` | `{ agentId }` | Submits final accusation guess |
-| `auth:refresh` | `{ token }` | Refreshes session token after client re-auth |
-
-### Server-to-Client (`ServerEvents`)
-| Event | Payload | Description |
-|---|---|---|
-| `party:sync` | `Party \| null` | Pushes full party state to party members |
-| `party:chat:sync` | `{ userId, message }` | Broadcasts new party chat message |
-| `party:invite:sync` | `IncomingPartyInvite` | Delivers party invitation to recipient |
-| `friends:sync` | `{ friends }` | Pushes initial friend list on connection |
-| `friends:presence` | `{ userId, online }` | Broadcasts friend online status changes |
-| `friend:request` | `FriendRequest` | Notifies user of incoming friend request |
-| `friend:request:accepted` | `{ userId }` | Notifies that a friend request was accepted |
-| `friend:request:declined` | `{ userId }` | Notifies that a friend request was declined |
-| `game:sync` | `MaskedGameState \| null` | Pushes updated match state (secret agent hidden) |
-| `game:end` | `{ winnerId, reason }` | Emitted when match resolves |
-| `app:error` | `{ message, code, statusCode }` | Error notifications and rate limit rejections |
-
----
-
-## Tech Stack
-
-- **Runtime**: Node.js (ES Modules, TypeScript)
-- **WebSockets**: Socket.IO 4.8
-- **In-Memory Store**: Redis via `ioredis`
-- **Database & ORM**: PostgreSQL via `pg` and Drizzle ORM
-- **Security & JWT**: `jose` (JWKS verification), `helmet`
-- **Validation**: `zod`
-- **Build & Dev Tools**: `tsdown`, `tsx`
-
----
-
-## Directory Structure
-
-```
+``` text
 src/
-├── db/                   # Database connection, Drizzle schema, and user repository
+├── db/                 # Database connection and schema
 ├── modules/
-│   ├── friends/          # Friend requests, acceptance, and database mutations
+│   ├── friends/        # Friend requests and related operations
 │   ├── game/
-│   │   ├── core/         # Session creation, player pairing, reconnects, match history
-│   │   └── guess-agent/  # Guess the Agent state machine, turn timers, questions, mapper
-│   ├── party/            # Party room lifecycle, codes, invites, and party chat
-│   └── player/           # Socket-to-player mappings, presence handler, reconnect grace
+│   │   ├── core/       # Match setup, reconnects, and history
+│   │   └── guess-agent/# Guess the Agent game logic and timers
+│   ├── party/          # Parties, invites, and chat
+│   └── player/         # Player connections and presence
 ├── setup/
-│   ├── redis.ts          # ioredis client initialization
-│   ├── register.ts       # Module listener registration
-│   └── socket/           # Socket server initialization, auth middleware, rate limiting
-├── shared/
-│   ├── consts/           # Agent roster, question bank, and event name constants
-│   ├── rateLimit/        # Token bucket algorithm and per-event limits
-│   └── utils/            # Async socket wrapper, error classes, ID generators
-├── env.ts                # Environment variable schema validated with Zod
-└── index.ts              # HTTP server entrypoint and shutdown handlers
+│   ├── redis.ts        # Redis client
+│   ├── register.ts     # Register event handlers
+│   └── socket/         # Socket setup, auth, and rate limiting
+├── shared/             # Constants, rate limits, and utilities
+├── env.ts              # Environment variable validation
+└── index.ts            # Server entry point
 ```
 
----
+## Run locally
 
-## Getting Started
+You'll need Node.js 22 or later, pnpm, Redis, PostgreSQL, and the
+[ValoGuess web app](https://github.com/Valoguess/valoguess) running
+locally for authentication.
 
-### Prerequisites
+Clone the repo and install dependencies:
 
-- Node.js 22+
-- [pnpm](https://pnpm.io/)
-- Redis instance (running locally or via Docker)
-- PostgreSQL database (shared with the Next.js app)
-- Running [ValoGuess Next.js frontend](https://github.com/Valoguess/valoguess) (for JWKS validation)
-
-### 1. Clone & Install
-
-```bash
+``` bash
 git clone https://github.com/Valoguess/valoguess-socket-server.git
 cd valoguess-socket-server
 pnpm install
 ```
 
-### 2. Environment Configuration
+Copy the example environment file to `.env` and fill in your own values:
 
-Create a `.env` file in the root directory:
-
-```env
-PORT=5000
-NODE_ENV=development
-CORS_ORIGIN=http://localhost:3000
-
-# Next.js Application URLs (for JWKS verification & token validation)
-FRONTEND_URL=http://localhost:3000
-NEXTJS_INTERNAL_URL=http://localhost:3000
-
-# Databases
-DATABASE_URL=postgres://postgres:password@localhost:5432/valoguess
-REDIS_URL=redis://localhost:6379
+``` bash
+cp .env.example .env
 ```
 
-### 3. Run Development Server
+A `compose.yml` is also included for redis:
 
-```bash
-pnpm run dev
-```
-
-### 4. Production Build & Run
-
-```bash
-pnpm run build
-pnpm start
-```
-
-### Docker Deployment
-
-A `compose.yml` is provided to spin up the socket server alongside Redis:
-
-```bash
+``` bash
 docker compose up -d
 ```
 
----
+Start the development server:
 
-## Related Repositories
+``` bash
+pnpm run dev
+```
 
-- **Frontend / Web App**: [Valoguess/valoguess](https://github.com/Valoguess/valoguess) — Next.js 16 web application with tactical UI, Better-Auth, and match board.
+## Related repository
 
----
+-   [ValoGuess web app](https://github.com/Valoguess/valoguess)
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+[MIT](LICENSE)
