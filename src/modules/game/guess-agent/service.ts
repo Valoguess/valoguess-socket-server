@@ -100,6 +100,14 @@ export async function startGuessAgentGame(gameId: string, playerId: string) {
     playerStates: {},
   };
 
+  if (game.mode !== "GUESS_AGENT") {
+    throw new AppError(
+      "Game is not in Guess Agent mode",
+      "GAME_NOT_GUESS_AGENT_MODE",
+      400,
+    );
+  }
+
   const availableAgents = [...AGENTS];
   for (const player of game.players) {
     const randomIndex = Math.floor(Math.random() * availableAgents.length);
@@ -139,6 +147,14 @@ export async function beginGuessAgentGame(game: Game, playerId: string) {
 
   if (!game.state) {
     throw new AppError("Game state is missing", "GAME_STATE_MISSING", 500);
+  }
+
+  if (game.mode !== "GUESS_AGENT") {
+    throw new AppError(
+      "Game is not in Guess Agent mode",
+      "GAME_NOT_GUESS_AGENT_MODE",
+      400,
+    );
   }
 
   if (game.settings.questionMode === "PRESET") {
@@ -230,6 +246,14 @@ export async function changeTurn(gameIdentifier: string | Game): Promise<Game> {
     throw new AppError("Game state is missing", "GAME_STATE_MISSING", 500);
   }
 
+  if (game.mode !== "GUESS_AGENT") {
+    throw new AppError(
+      "Game is not in Guess Agent mode",
+      "GAME_NOT_GUESS_AGENT_MODE",
+      400,
+    );
+  }
+
   const currentTurn = game.state.currentTurn;
   const nextTurnPlayer = game.players.find(
     (player: GamePlayer) => player.id !== currentTurn,
@@ -256,6 +280,14 @@ export async function changeTurn(gameIdentifier: string | Game): Promise<Game> {
 export async function finishGame(game: Game, winnerId?: string) {
   if (!game.state) {
     throw new AppError("Game state is missing", "GAME_STATE_MISSING", 500);
+  }
+
+  if (game.mode !== "GUESS_AGENT") {
+    throw new AppError(
+      "Game is not in Guess Agent mode",
+      "GAME_NOT_GUESS_AGENT_MODE",
+      400,
+    );
   }
 
   if (winnerId) {

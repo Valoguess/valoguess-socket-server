@@ -64,6 +64,10 @@ export function guessAgentMapper(
   game: Game,
   playerId: string,
 ): GuessAgentGameDTO {
+  if (game.mode !== "GUESS_AGENT") {
+    throw new AppError("Game is not a Guess Agent game", "GAME_NOT_GUESS_AGENT");
+  }
+
   const dto: GuessAgentGameDTO = {
     id: game.id,
     hostId: game.hostId,

@@ -23,6 +23,14 @@ export async function askQuestion(
     throw new AppError("Game not found", "GAME_NOT_FOUND", 404);
   }
 
+  if (game.mode !== "GUESS_AGENT") {
+    throw new AppError(
+      "Game is not in Guess Agent mode",
+      "GAME_NOT_GUESS_AGENT_MODE",
+      400,
+    );
+  }
+
   if (game.status !== "PLAYING" || !game.state) {
     throw new AppError("Game not started", "GAME_NOT_STARTED");
   }
@@ -105,6 +113,14 @@ export async function answerQuestion(
     throw new AppError("Game not started", "GAME_NOT_STARTED");
   }
 
+  if (game.mode !== "GUESS_AGENT") {
+    throw new AppError(
+      "Game is not in Guess Agent mode",
+      "GAME_NOT_GUESS_AGENT_MODE",
+      400,
+    );
+  }
+
   if (!game.state.pendingQuestion) {
     throw new AppError("No pending question", "NO_PENDING_QUESTION");
   }
@@ -161,6 +177,14 @@ export async function makeGuess(
 
   if (game.status !== "PLAYING" || !game.state) {
     throw new AppError("Game not started", "GAME_NOT_STARTED");
+  }
+
+  if (game.mode !== "GUESS_AGENT") {
+    throw new AppError(
+      "Game is not in Guess Agent mode",
+      "GAME_NOT_GUESS_AGENT_MODE",
+      400,
+    );
   }
 
   const currPlayer = game.players.find((player) => player.id === playerId);
