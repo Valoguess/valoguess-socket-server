@@ -29,7 +29,7 @@ export function createSocketServer(server: Server) {
     SocketData
   >(server, {
     cors: {
-      origin: [ENV.FRONTEND_URL],
+      origin: [ENV.NEXTJS_URL],
       credentials: true,
     },
   });

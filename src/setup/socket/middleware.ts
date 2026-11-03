@@ -8,13 +8,13 @@ import { attempt } from "@/shared/rateLimit/tokenBucket.js";
 import { getPlayerById, savePlayer } from "@/modules/player/service.js";
 
 const JWKS = createRemoteJWKSet(
-  new URL(`${ENV.NEXTJS_INTERNAL_URL}/api/auth/jwks`),
+  new URL(`${ENV.NEXTJS_URL}/api/auth/jwks`),
 );
 
 async function validateToken(token: string) {
   const { payload } = await jwtVerify(token, JWKS, {
-    issuer: `${ENV.FRONTEND_URL}`,
-    audience: `${ENV.FRONTEND_URL}`,
+    issuer: `${ENV.NEXTJS_URL}`,
+    audience: `${ENV.NEXTJS_URL}`,
   });
   return payload;
 }
