@@ -6,7 +6,6 @@ export const envSchema = z.object({
     .enum(["development", "production", "test"])
     .default("development"),
 
-  BASE_URL: z.string(),
   PORT: z.coerce.number().default(5000),
   NEXTJS_URL: z.string(),
   DATABASE_URL: z.string(),
