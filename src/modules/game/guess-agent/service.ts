@@ -93,7 +93,7 @@ export async function startGuessAgentGame(gameId: string, playerId: string) {
 
   game.status = "STARTING";
   game.startingAt = Date.now();
-  game.startingEndsAt = game.startingAt + 15000; // 15 seconds countdown
+  game.startingEndsAt = game.startingAt + 5000; // 5 sec
 
   game.state = {
     history: [],

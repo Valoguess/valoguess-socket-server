@@ -151,8 +151,8 @@ export function gameCoreListener(io: Server, socket: Socket) {
                 );
               }
             },
-            timeUntilStart ? timeUntilStart : 15000,
-          ); // 15 seconds countdown
+            timeUntilStart ? timeUntilStart : 5000,
+          );
 
           break;
         default:
