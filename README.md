@@ -10,26 +10,19 @@ Redis for temporary data.
 
 ## How it works
 
-``` text
-Next.js web app
-  │
-  │ Socket.IO + JWT
-  ▼
-Socket server
-  ├── Authenticates connections
-  ├── Manages parties and friends
-  ├── Runs match logic and timers
-  └── Tracks player presence
-       │             │
-       ▼             ▼
-     Redis       PostgreSQL
-  temporary      match history
-  game state     and persistent data
-```
-
 The socket server verifies JWTs against the JWKS endpoint exposed by the
 Next.js app. PostgreSQL stores persistent records, while Redis holds
 live state such as parties, active games, presence, and rate-limit data.
+
+## Screenshots
+
+![Party lobby](public/showcase/lobby-in-party.webp)
+
+![Friends and lobby](public/showcase/lobby.webp)
+
+![Guess the Agent match](public/showcase/game.webp)
+
+![Match history](public/showcase/match-history.webp)
 
 ## Current features
 
@@ -45,9 +38,6 @@ live state such as parties, active games, presence, and rate-limit data.
     events.
 -   **Match history:** completed matches are saved to PostgreSQL.
 
-An Imposter mode is planned for ValoGuess and will be added to the
-server as its implementation progresses.
-
 ## Tech stack
 
 -   Node.js, TypeScript, and Socket.IO
@@ -57,27 +47,6 @@ server as its implementation progresses.
 -   Zod for validation
 -   `helmet` for HTTP security headers
 -   pnpm, `tsdown`, and `tsx`
-
-## Project structure
-
-``` text
-src/
-├── db/                 # Database connection and schema
-├── modules/
-│   ├── friends/        # Friend requests and related operations
-│   ├── game/
-│   │   ├── core/       # Match setup, reconnects, and history
-│   │   └── guess-agent/# Guess the Agent game logic and timers
-│   ├── party/          # Parties, invites, and chat
-│   └── player/         # Player connections and presence
-├── setup/
-│   ├── redis.ts        # Redis client
-│   ├── register.ts     # Register event handlers
-│   └── socket/         # Socket setup, auth, and rate limiting
-├── shared/             # Constants, rate limits, and utilities
-├── env.ts              # Environment variable validation
-└── index.ts            # Server entry point
-```
 
 ## Run locally
 
